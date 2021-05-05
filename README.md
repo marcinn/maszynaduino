@@ -13,7 +13,7 @@ niż fizycznie posiadają mikrokontrolery.
 * szeregowa konsola do diagnostyki
 * wsparcie dla analogowych multiplekserów (typu 74HC4067)
 * obsługa kontrolek i przełączników 
-* prostota użycia
+* prostota użycia i czytelność
 
 ## Pierwsze kroki
 
@@ -28,6 +28,7 @@ Przykładowo przełącznik baterii podłączony do portu 2 można zadeklarować 
 
 ```cpp
 #define PIN_BATERIA 2
+
 Switch *bateria = new PinSwitch(PIN_BATERIA, 0, 2)
 ```
 
@@ -37,19 +38,34 @@ Parametry konstruktora `PinSwitch` są następujące:
 - nr bitu do gaszenia / zapalania (tu: 2)
 
 
+Do pinu 3 podłączymy kontrolkę lampki czuwaka:
+
+```cpp
+#define PIN_LAMPKA_CZUWAK 3
+
+Indicator *lampkaCzuwaka = new PinIndicator(PIN_LAMPKA_CZUWAK, 4, 6);
+```
+
+Parametry konstuktora `PinIndicator` są następujące:
+- nr pinu
+- nr bajtu ramki wejścia (tu: 4, liczony bez preambuły)
+- nr bitu określającego stan kontrolki (tu: 6)
+
+
 W następnym kroku należy utworzyć pulpit określając szeregowy port do komunikacji:
 
 ```cpp
 Console *sm42 = new Console(&Serial);
 ```
 
-W funkcji `setup()` należy dodać do pulpitu utworzony przełącznik, oraz zainicjować pulpit.
+W funkcji `setup()` należy dodać do pulpitu utworzone przełącznik i kontrolkę, oraz zainicjować pulpit.
 
 
 ```cpp
 void setup() {
-    sm42->addSwitch(bateria);  // dodanie przełącznika baterii
-    sm42->setup();             // zainicjowanie pulpitu
+    sm42->addSwitch(bateria);           // dodanie przełącznika baterii
+    sm42->addIndicator(lampkaCzuwaka);  // dodanie kontrolki czuwaka
+    sm42->setup();                      // zainicjowanie pulpitu
 }
 ```
 
@@ -70,16 +86,20 @@ Aby przykład zadziałał w MaSzynie, w pliku `eu07_input-uart.ini`, musi pojawi
 Kompletny przykład:
 
 ```cpp
-#include "maszynaduino.h"
+##include "maszynaduino.h"
 
 #define PIN_BATERIA 2
+#define PIN_LAMPKA_CZUWAK 3
 
 Switch *bateria = new PinSwitch(PIN_BATERIA, 0, 2);
+Indicator *lampkaCzuwaka = new PinIndicator(PIN_LAMPKA_CZUWAK, 4, 6);
+
 Console *sm42 = new Console(&Serial);
 
 
 void setup() {
   sm42->addSwitch(bateria);
+  sm42->addIndicator(lampkaCzuwaka);
   sm42->setup();
 }
 
