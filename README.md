@@ -116,6 +116,9 @@ Do przełączników nie trzeba podłączać rezystorów ściągających, poniewa
 
 ![maszynaduino-example-01](https://user-images.githubusercontent.com/139032/117209484-ae22ac00-adf6-11eb-8b7a-1a5a4f64b4e7.png)
 
+### Transmisja danych
+
+W tej chwili `Console` konfiguruje port szeregowy na 57600 bodów (bez możliwości zmiany), i taką prędkość należy ustawić w `eu07.ini` w MaSzynie.
 
 ## Elementy interfejsu programistycznego
 
