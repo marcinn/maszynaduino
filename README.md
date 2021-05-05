@@ -88,7 +88,7 @@ Aby przykład zadziałał w MaSzynie, w pliku `eu07_input-uart.ini`, musi pojawi
 ### Kompletny przykład:
 
 ```cpp
-##include "maszynaduino.h"
+#include "maszynaduino.h"
 
 #define PIN_BATERIA 2
 #define PIN_LAMPKA_CZUWAK 3
