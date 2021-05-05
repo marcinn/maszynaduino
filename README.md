@@ -163,7 +163,7 @@ a przełącznik baterii z przykładu należałoy zdefiniować następująco:
 
 ```cpp
 
-// MuxSwitch(Mux *mux, int channel, int frame, int bitNum);
+// MuxSwitch(Mux *mux, int channel, int nrBajtuRamki, int nrBitu);
 
 Switch *bateria = new MuxSwitch(mux1, MUX_CH1, 0, 2);
 ```
