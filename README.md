@@ -116,6 +116,61 @@ Do przełączników nie trzeba podłączać rezystorów ściągających, poniewa
 ![maszynaduino-example-01](https://user-images.githubusercontent.com/139032/117209484-ae22ac00-adf6-11eb-8b7a-1a5a4f64b4e7.png)
 
 
+## Elementy interfejsu programistycznego
+
+**Uwaga. Do wydania wersji 1.0 API biblioteki może się zmieniać bez zachowania kompatybilności.**
+
+Klasa           | Opis
+--------------- | -------------------
+`PinSwitch`     | przełącznik podłączony bezpośrednio do pinu mikrokontrolera
+`MuxSwitch`     | przełącznik podłączony przez multiplekser
+`PinIndicator`  | kontrolka podłączona bezpośrednio do pinu mikrokontrolera
+`Console`       | obiekt opisu i obsługi pulpitu (może być zdefiniowanych wiele pulpitów)
+`Mux`           | obsługa pojedynczego multipleksera
+`ConsoleDebug`  | konsola debugowania podłączana do portu szeregowego
+
+
+Struktura       | Opis
+--------------- | --------------------
+`InputFrame`    | struktura opisująca ramkę wejśc z symulatora (PC)
+`OutputFrame`   | struktura opisująca ramkę wyjść do symulatora (PC)
+
+## Użycie multiplekserów
+
+**Uwaga. Interfejs obsługi multiplekserów może się zmienić przed wydaniem wersji 1.0**
+
+Aby zwiększyć liczbę I/O należy zastosować multiplekser (jeden lub więcej).
+Biblioteka testowana jest o popularny układ `74HC4067`, 16-to kanałowy analogowy multiplekser.
+
+W celu opisania multipleksera wpiętego w układ należy utworzyć instancję klasy `Mux`
+z opisem użytych pinów, a przy tworzeniu instancji przełączników lub kontrolek użyć klas
+dedykowanych dla multipleksera.
+
+Zakładając, że mamy jeden multiplekser wpięty do pinów:
+- 2: pin "enable" multipleksera
+- 3: pin "data" multipleksera
+- 4, 5, 6, 7: piny sterujące "S0-S3" multipleksera,
+w kodzie programu należy zdefiniować multiplekser następująco:
+
+```cpp
+
+// Mux(int pinEnable, int pinData, int pinS0, int pinS1, int pinS2, int pinS3);
+
+Mux* mux1 = new Mux(2, 3, 4, 5, 6, 7);
+```
+
+a przełącznik baterii z przykładu należałoy zdefiniować następująco:
+
+```cpp
+
+// MuxSwitch(Mux *mux, int channel, int frame, int bitNum);
+
+Switch *bateria = new MuxSwitch(mux1, MUX_CH1, 0, 2);
+```
+
+Ponieważ multiplekser zajął pin 3, to lampkę czuwaka (z przykładu) należałoby podłączyć do innego pinu (np. 8).
+To wszystkie zmiany, które należy wprowadzić w celu przeniesienia przełącznika na multiplekser.
+
 
 ## Konsola debugowania
 
@@ -150,6 +205,39 @@ Aby wykorzystać dodatkowe porty szeregowe do debugowania, konieczna będzie pł
 ![usb-ttl-serial-adapter](https://user-images.githubusercontent.com/139032/117203173-00f86580-adef-11eb-90cd-3f6f00fb1971.jpg)
 
 
+Konsolę debugowania można też uruchomić także na urządzeniach z jednym portem szeregowym (typu Arduino Uno).
+W tej sytuacji nie powino się transmitować danych z/do PC (za pomocą `Console::transmit()`), bo zaburzy to dzialanie konsoli.
+Transmisję danych warto wtedy uruchamiać warunkowo. Przykład:
+
+```cpp
+
+#define DEBUG
+
+#ifdef DEBUG
+ConsoleDebug *debug = new ConsoleDebug(sm42, &Serial);
+#endif
+
+void setup() {
+  // ...
+#ifdef DEBUG
+    debug->setup();
+#endif
+  // ...
+}
+
+void loop() {
+  // ...
+#ifdef DEBUG
+    debug->send();
+#else
+    sm42->update();
+    sm42->transmit();
+#endif
+  // ...
+}
+```
+
+
 ## Plan rozwoju
 
 ### 1.0
@@ -161,7 +249,7 @@ Aby wykorzystać dodatkowe porty szeregowe do debugowania, konieczna będzie pł
 - [ ] przełączniki wielopozycyjne
 - [ ] wskaźniki / mierniki (direct i mux)
 - [ ] ułatwienie obsługi wielu multiplekserów (do 4 szt, common data i select)
-- [ ] optymalizacje, ewentualna przebudowa i stabilizacja API
+- [ ] optymalizacje, użycie przerwań, ewentualna przebudowa i stabilizacja API
 
 ### 1.1
 - [ ] gotowe rozwiązania dla mierników, manometrów (np. servo)
