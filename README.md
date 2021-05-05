@@ -1,4 +1,5 @@
 # maszynaduino
+[![experimental](http://badges.github.io/stability-badges/dist/experimental.svg)](http://github.com/badges/stability-badges)
 
 Maszynaduino jest biblioteką dla Arduino (Uno, Mega, etc) ułatwiającą oprogramowanie
 pulpitów budowanych na potrzeby symulatora MaSzyna (aka EU07).
