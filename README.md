@@ -242,6 +242,15 @@ void loop() {
 }
 ```
 
+### Transmisja
+
+Ponieważ konsola debugowania wysyła polecenia terminala do "czyszczenia" ekranu, zalecane korzystanie z Putty lub Screena zamiast Serial Monitora wbudowanego w Arduino IDE. Przykładowo:
+
+```bash
+screen /dev/ttyACM0 57600
+```
+
+**Transmisja konsoli debugowania wymaga ustawienia prędkości na 57600 bodów**. W przyszłości będzie możliwa zmiana.
 
 ## Plan rozwoju
 
