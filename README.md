@@ -148,3 +148,20 @@ void loop() {
 Aby wykorzystać dodatkowe porty szeregowe do debugowania, konieczna będzie płytka obsługująca większą liczbę portów szeregowych (typu Arduino Mega, Arduino Due) oraz adapter USB.
 
 ![usb-ttl-serial-adapter](https://user-images.githubusercontent.com/139032/117203173-00f86580-adef-11eb-90cd-3f6f00fb1971.jpg)
+
+
+## Plan rozwoju
+
+### 1.0
+
+- [x] przełączniki (bezpośrednio do pinów)
+- [x] przełączniki (przez multiplekser)
+- [x] kontrolki (bezpośrednio do pinów)
+- [ ] kontrolki (przez multiplekser)
+- [ ] przełączniki wielopozycyjne
+- [ ] wskaźniki / mierniki (direct i mux)
+- [ ] ułatwienie obsługi wielu multiplekserów (do 4 szt, common data i select)
+- [ ] optymalizacje, ewentualna przebudowa i stabilizacja API
+
+### 1.1
+- [ ] gotowe rozwiązania dla mierników, manometrów (np. servo)
