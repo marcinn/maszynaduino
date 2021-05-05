@@ -83,7 +83,7 @@ Aby przykład zadziałał w MaSzynie, w pliku `eu07_input-uart.ini`, musi pojawi
 2 toggle batteryenable batterydisable
 ```
 
-Kompletny przykład:
+### Kompletny przykład:
 
 ```cpp
 ##include "maszynaduino.h"
@@ -108,6 +108,14 @@ void loop() {
   sm42->transmit();
 }
 ```
+
+### Schemat połączeń
+
+Do przełączników nie trzeba podłączać rezystorów ściągających, ponieważ Maszynaduino domyślnie konfiguruje wejścia w trybie `INPUT_PULLUP` (z rezystorami podciągającymi wbudowanymi w Arduino). W razie potrzeby dowolny przełącznik można skonfigurować bez użycia rezystora podciągającego - biblioteka zadba o prawidłową interpretację stanu wejścia.   
+
+![maszynaduino-example-01](https://user-images.githubusercontent.com/139032/117209484-ae22ac00-adf6-11eb-8b7a-1a5a4f64b4e7.png)
+
+
 
 ## Konsola debugowania
 
