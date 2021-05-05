@@ -175,19 +175,11 @@ Pytania i sugestie proszę wpisywać za pomocą https://github.com/marcinn/masz
 
 **Czy można korzystać z biblioteki za darmo?**
 
-Tak, ale tylko do produktów niekomercyjnych (np. własnych konstrukcji).
+Tak.
 
-**Jak dynamicznie będzie rozwijany projekt?**
+**Czy mogę budować swoje produkty w oparciu o nią?**
 
-Zależnie od mojego wolnego czasu i trudności zagadnień.
-
-**Czy mogę sprzedawać skompilowaną bibliotekę?**
-
-Nie. Można jedynie pobierać opłaty za dystrybucję biblioteki, np. za cenę nośnika i przesyłki. Dystrybuować należy wraz z kodem źródłowym i zachowaną informacją o autorstwie.
-
-**Czy mogę użyć biblioteki w moim produkcie, który będzie przeznaczony do sprzedaży?**
-
-Jest to możliwe po uzyskaniu licencji komercyjnej.
+Tak, ale z zachowaniem zasad licencji GPL v3.0 (w skrócie - powstały produkt także musi być tak samo licencjonowany i dystrybuowany).
 
 **Biblioteka nie posiada bardzo potrzebnej funkcji.**
 
