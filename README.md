@@ -165,3 +165,30 @@ Aby wykorzystać dodatkowe porty szeregowe do debugowania, konieczna będzie pł
 
 ### 1.1
 - [ ] gotowe rozwiązania dla mierników, manometrów (np. servo)
+
+
+## Sugestie i pytania
+
+Pytania i sugestie proszę wpisywać za pomocą https://github.com/marcinn/maszynaduino/issues
+
+## FAQ
+
+**Czy można korzystać z biblioteki za darmo?**
+
+Tak, ale tylko do produktów niekomercyjnych (np. własnych konstrukcji).
+
+**Jak dynamicznie będzie rozwijany projekt?**
+
+Zależnie od mojego wolnego czasu i trudności zagadnień.
+
+**Czy mogę sprzedawać skompilowaną bibliotekę?**
+
+Nie. Można jedynie pobierać opłaty za dystrybucję biblioteki, np. za cenę nośnika i przesyłki. Dystrybuować należy wraz z kodem źródłowym i zachowaną informacją o autorstwie.
+
+**Czy mogę użyć biblioteki w moim produkcie, który będzie przeznaczony do sprzedaży?**
+
+Jest to możliwe po uzyskaniu licencji komercyjnej.
+
+**Biblioteka nie posiada bardzo potrzebnej funkcji.**
+
+Należy opisać problem, sugestię lub zapotrzebowanie za pomocą https://github.com/marcinn/maszynaduino/issues.
