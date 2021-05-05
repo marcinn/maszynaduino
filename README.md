@@ -143,7 +143,8 @@ Struktura       | Opis
 `OutputFrame`   | struktura opisująca ramkę wyjść do symulatora (PC)
 
 
-`InputFrame`:
+### Ramki `InputFrame` i `OutputFrame`
+
 
 ```cpp
 struct InputFrame {
@@ -171,7 +172,6 @@ struct InputFrame {
 };
 ```
 
-`OutputFrame`:
 
 ```cpp
 struct OutputFrame {
@@ -190,7 +190,7 @@ struct OutputFrame {
 };
 ```
 
-### Console
+### KLasa `Console`
 
 ```cpp
 InputFrame* Console::getInputs();        // odczyt stanu wejść (ostatnio odebrane)
