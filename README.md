@@ -15,6 +15,7 @@ niż fizycznie posiadają mikrokontrolery.
 * wsparcie dla analogowych multiplekserów (typu 74HC4067)
 * obsługa kontrolek i przełączników 
 * prostota użycia i czytelność
+* kompatybilność z MaSzyną wysyłającą preambułę w komunikacji UART (cztery bajty 0xEF na początkach ramek wejść i wyjść)
 
 ## Pierwsze kroki
 
