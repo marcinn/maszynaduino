@@ -33,6 +33,8 @@ class Mux {
         void disable();
         bool readDigital();
         int readAnalog();
+        void writeDigital(bool state);
+        void writeAnalog(int value);
         void channel(int channel);
 
     private:

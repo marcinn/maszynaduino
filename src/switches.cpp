@@ -1,20 +1,16 @@
 #include "Arduino.h"
 #include "switches.h"
-
-void Switch::updateOutputs(byte outputs[]) {
-
-    if ((this->mode == INPUT_PULLUP && this->state) || (this->mode == LOW && this->state)) {
-        outputs[this->frame + 4] |= 1 << this->bitNum;
-    }
-    else {
-        outputs[this->frame + 4] &= ~(1 << this->bitNum);
-    }
-};
-
+#include "console.h"
 
 void Switch::update() {
     bool value = this->probe();
-    this->state = this->invert == (SwitchMode::INVERT ? value : !value);
+    value = (this->invert ? !value : value);
+    value = (this->mode == INPUT_PULLUP ? !value : value);
+    this->state = value;
+}
+
+void Switch::respond(Console *console) {
+    console->setOutputSwitch((this->frame << 3) + this->bitNum, this->state);
 }
 
 bool Switch::getState() {
@@ -39,7 +35,12 @@ PinSwitch::PinSwitch(int pin, int frame, int bitNum, int mode, SwitchMode invert
     this->invert = invert;
 };
 
-PinSwitch::PinSwitch(int pin, int frame, int bitNum) : PinSwitch::PinSwitch(pin, frame, bitNum, INPUT_PULLUP, SwitchMode::NORMAL) {
+PinSwitch::PinSwitch(int pin, int frame, int bitNum)
+    : PinSwitch::PinSwitch(pin, frame, bitNum, INPUT_PULLUP, SwitchMode::NORMAL) {
+};
+
+PinSwitch::PinSwitch(int pin, int outputNumber, SwitchMode invert)
+    : PinSwitch::PinSwitch(pin, outputNumber / 8, outputNumber % 8, INPUT_PULLUP, invert) {
 };
 
 void PinSwitch::setup() {
@@ -67,14 +68,16 @@ MuxSwitch::MuxSwitch(Mux *mux, int channel, int frame, int bitNum, SwitchMode in
 MuxSwitch::MuxSwitch(Mux *mux, int channel, int frame, int bitNum) : MuxSwitch::MuxSwitch(mux, channel, frame, bitNum, SwitchMode::NORMAL) {
 }
 
+MuxSwitch::MuxSwitch(Mux *mux, int channel, int outputNumber, SwitchMode invert)
+    : MuxSwitch::MuxSwitch(mux, channel, outputNumber / 8, outputNumber % 8, invert) { }
+
 void MuxSwitch::setup() {
-    this->mux->setDataPinMode(this->mode);
     this->update();
 }
 
 bool MuxSwitch::probe() {
-    this->mux->enable();
+    this->mux->setDataPinMode(this->mode);
     this->mux->channel(this->channel);
-    delayMicroseconds(1);
+    this->mux->enable();
     return this->mux->readDigital();
 };

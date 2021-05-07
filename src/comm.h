@@ -43,4 +43,17 @@ struct __attribute__((packed))  OutputFrame {
     uint8_t unused[4];
 };
 
+
+/*
+class MaSzynaUART {
+    public:
+        MaSzynaUART(HardwareSerial *serial, int baud=57600);
+        void receive(InputFrame *);
+        void send(OutputFrame *);
+
+    private:
+        InputFrame tempInput;
+}
+*/
+
 #endif

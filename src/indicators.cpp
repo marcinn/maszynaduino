@@ -24,3 +24,21 @@ void PinIndicator::setup() {
 void PinIndicator::respond() {
     digitalWrite(this->pin, this->state ? HIGH : LOW);
 }
+
+
+MuxIndicator::MuxIndicator(Mux *mux, int channel, int frameNum, int bitNum) {
+    this->bitNum = bitNum;
+    this->frame = frameNum;
+    this->mux = mux;
+    this->channel = channel;
+}
+
+void MuxIndicator::setup() {
+}
+
+void MuxIndicator::respond() {
+    this->mux->writeDigital(this->state);
+    this->mux->setDataPinMode(OUTPUT);
+    this->mux->channel(this->channel);
+    this->mux->enable();
+}

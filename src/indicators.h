@@ -3,6 +3,7 @@
 
 #include "Arduino.h"
 #include "comm.h"
+#include "mux.h"
 
 
 class Indicator {
@@ -27,6 +28,17 @@ class PinIndicator : public Indicator {
         virtual void respond();
     private:
         int pin;
+};
+
+
+class MuxIndicator : public Indicator {
+    public:
+        MuxIndicator(Mux *mux, int channel, int frameNum, int bitNum);
+        virtual void setup();
+        virtual void respond();
+    private:
+        Mux *mux;
+        int channel;
 };
 
 #endif

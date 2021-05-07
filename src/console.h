@@ -25,6 +25,8 @@ class Console {
     void transmit();
     void addSwitch(Switch *);
     void addIndicator(Indicator *indicator);
+    void setOutputBit(uint8_t num, uint8_t bitNum, bool state);
+    void setOutputSwitch(uint8_t num, bool state);
     int getSwitchesCount();
     int getIndicatorsCount();
     InputFrame* getInputs();

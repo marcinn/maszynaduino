@@ -41,6 +41,14 @@ int Mux::readAnalog() {
     return analogRead(this->pinData);
 }
 
+void Mux::writeDigital(bool value) {
+    return digitalWrite(this->pinData, value ? HIGH : LOW);
+}
+
+void Mux::writeAnalog(int value) {
+    return analogWrite(this->pinData, value);
+}
+
 void Mux::channel(int ch) {
     digitalWrite(this->pinS0, ch & 1);
     digitalWrite(this->pinS1, ch & 2);

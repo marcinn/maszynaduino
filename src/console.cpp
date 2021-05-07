@@ -21,7 +21,7 @@ Console::Console(HardwareSerial *serial, Switch **switches, int switchesCount, I
 }
 
 void Console::setup() {
-    this->serial->begin(57600);
+    this->serial->begin(57600, SERIAL_8N1);
 
     for (int i = 0; i < this->switchesCount; i++) {
         this->switches[i]->setup();
@@ -34,7 +34,7 @@ void Console::setup() {
 void Console::update() {
     for (int i = 0; i < this->switchesCount; i++) {
         this->switches[i]->update();
-        this->switches[i]->updateOutputs((byte *) &this->output);
+        this->switches[i]->respond(this);
     }
     for (int i = 0; i < this->indicatorsCount; i++) {
         this->indicators[i]->update(&this->input);
@@ -69,4 +69,23 @@ int Console::getSwitchesCount() {
 
 int Console::getIndicatorsCount() {
     return this->indicatorsCount;
+}
+
+void Console::setOutputSwitch(uint8_t num, bool state) {
+    if(num > 47) {
+        return;
+    }
+
+    uint8_t const byteNum = (num / 8);
+    uint8_t const bitNum = num % 8;
+
+    this->setOutputBit(byteNum, bitNum, state);
+}
+
+void Console::setOutputBit(uint8_t byteNum, uint8_t bitNum, bool state) {
+    if(state) {
+        ((uint8_t *) &this->output)[byteNum+4] |= 1 << bitNum;
+    } else {
+        ((uint8_t *) &this->output)[byteNum+4] &= ~(1 << bitNum);
+    }
 }

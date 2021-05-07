@@ -5,21 +5,24 @@
 #include "mux.h"
 
 
+class Console;
+
+
 enum SwitchMode { NORMAL=0, INVERT };
 
 
 class Switch {
   public:
-    void updateOutputs(uint8_t outputs[]);
     virtual void setup();
     void update();
+    void respond(Console *console);
     bool getState();
     bool isOn();
     bool isOff();
   protected:
+    int mode;
     int frame;
     int bitNum;
-    int mode;
     bool state = false;
     bool invert = false;
 
@@ -31,6 +34,7 @@ class PinSwitch : public Switch {
   public:
     PinSwitch(int pin, int frame, int bitNum, int mode, SwitchMode invert);
     PinSwitch(int pin, int frame, int bitNum);
+    PinSwitch(int pin, int outputNumber, SwitchMode invert=SwitchMode::NORMAL);
     void setup();
   protected:
     bool probe();
@@ -43,6 +47,7 @@ class MuxSwitch : public Switch {
   public:
     MuxSwitch(Mux *mux, int channel, int frame, int bitNum, SwitchMode invert);
     MuxSwitch(Mux *mux, int channel, int frame, int bitNum);
+    MuxSwitch(Mux *mux, int channel, int outputNumber, SwitchMode invert=SwitchMode::NORMAL);
     void setup();
   protected:
     bool probe();
