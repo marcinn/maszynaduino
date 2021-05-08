@@ -11,6 +11,8 @@
 #include "switches.h"
 #include "indicators.h"
 #include "comm.h"
+#include "version.h"
 
+extern void mux_setup_interrupts();
 
 #endif

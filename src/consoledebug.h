@@ -4,21 +4,26 @@
 
 #include "Arduino.h"
 #include "console.h"
+#include "comm.h"
 
-class ConsoleDebug {
+class ConsoleDebug : public BaseConsole {
     public:
         ConsoleDebug(Console *console, HardwareSerial *debugSerial);
         void setup();
-        void send();
+        void update();
+        void transmit();
         void clearScreen();
         bool isDataChanged();
+        //void addConsole(Console *);
+        void log(const String &);
     protected:
-        void printBits(long int n, int numBits);
+        void printBits(uint32_t n, int numBits);
     private:
         HardwareSerial *serial;
         Console *console;
         InputFrame previousInput;
         OutputFrame previousOutput;
+        unsigned long timeCounter = 0;
 };
 
 #endif

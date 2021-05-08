@@ -1,5 +1,12 @@
+#include "Arduino.h"
+
 #ifndef MASZYNADUINO_MUX_H
 #define MASZYNADUINO_MUX_H
+
+
+#ifndef MAX_MUXERS
+#define MAX_MUXERS 10
+#endif
 
 #define MUX_CH0 0
 #define MUX_CH1 1
@@ -24,6 +31,9 @@ enum MuxChannels {
     CH9, CH10, CH11, CH12, CH13, CH14, CH15, CH16
 };
 
+#define MUXDIR_INPUT 0
+#define MUXDIR_OUTPUT 1
+
 class Mux {
     public:
         Mux(int pinEnable, int pinData, int pinS0, int pinS1, int pinS2, int pinS3);
@@ -36,10 +46,15 @@ class Mux {
         void writeDigital(bool state);
         void writeAnalog(int value);
         void channel(int channel);
+        void setState(uint32_t state);
+        uint32_t getState();
+        uint8_t channelsCount() { return this->channels; }
 
     private:
         int pinS0, pinS1, pinS2, pinS3;
         int pinEnable, pinData;
+        int channels = 16;
+        uint32_t state = 0;
 };
 
 #endif

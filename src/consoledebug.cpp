@@ -1,24 +1,62 @@
 #include "Arduino.h"
 #include "consoledebug.h"
 #include "comm.h"
+#include "mux.h"
+#include "version.h"
 
-ConsoleDebug::ConsoleDebug(Console *console, HardwareSerial *debugSerial) {
+extern uint32_t _MUX_STATE;
+extern uint8_t _MUX_CURRENT;
+extern uint8_t _MUX_COUNT;
+extern uint8_t _MUX_CURRENT_CHANNEL;
+extern Mux* _MUXERS[];
+
+ConsoleDebug::ConsoleDebug(Console * console, HardwareSerial *debugSerial) {
     this->serial = debugSerial;
     this->console = console;
+    //MaszynaTransmitter.registerConsole(this);
 }
 
+/*
+void ConsoleDebug::addConsole(Console *console) {
+    this->consoles[this->consolesNum] = console;
+    this->consolesNum++;
+}
+*/
+
 void ConsoleDebug::setup() {
-    this->serial->begin(57600);
+    this->serial->begin(500000);
+    this->initialized = true;
+}
+
+void ConsoleDebug::log(const String &s) {
+    if(this->serial && this->serial->availableForWrite()) {
+        this->serial->println(s);
+    }
 }
 
 bool ConsoleDebug::isDataChanged() {
+    /*
     bool c1 = memcmp(&previousInput, console->getInputs(), sizeof(previousInput));
     bool c2 = memcmp(&previousOutput, console->getOutputs(), sizeof(previousOutput));
-    return (c1 != 0 || c2 !=0);
+    */
+    unsigned long second = millis() / 100;
+    if(second != this->timeCounter) {
+        this->timeCounter = second;
+        return true;
+    } else {
+        return false;
+    }
 }
 
-void ConsoleDebug::send() {
+void ConsoleDebug::update() {
+}
+
+void ConsoleDebug::transmit() {
     if(!isDataChanged()) {
+        return;
+    }
+
+    if(!this->serial || !this->serial->availableForWrite()) {
         return;
     }
 
@@ -30,24 +68,95 @@ void ConsoleDebug::send() {
 
     this->clearScreen();
 
-    serial->print("[SETUP] Indicators count: ");
+    HardwareSerial *cserial = this->console->getSerial();
+
+    serial->print("Maszynaduino ");
+    serial->print(MASZYNADUINO_VERSION_STR);
+    serial->print(" Monitor            Running time: ");
+    serial->print(millis() / 1000);
+    serial->print("s");
+    serial->print("  TC#: ");
+    serial->println(MaszynaTransmitter.getRegisteredConsolesNumber());
+    serial->println("----------------------------------------------------------------");
+    serial->println();
+
+    serial->println("[Serial]");
+    serial->print("Active: ");
+    serial->print((bool) cserial);
+    serial->print("  InBuf: ");
+    serial->print(cserial->available());
+    serial->print("  WrAvl: ");
+    serial->print(cserial->availableForWrite());
+    serial->print("  Baud: ");
+    serial->print(this->console->getSerialBaud());
+    serial->print("  TrnActive: ");
+    serial->print(this->console->isTransmissionActive());
+    serial->println();
+
+    InputFrame *input = this->console->getInputs();
+    OutputFrame *output = this->console->getOutputs();
+
+    serial->print("RX: ");
+    for(int i=0;i<sizeof(InputFrame);i++) {
+        serial->print(((uint8_t *) input)[i], HEX);
+        if(i>0 && (i % (sizeof(InputFrame)/2)) == 0) {
+            serial->println();
+            serial->print("    ");
+        } else {
+            serial->print(" ");
+        }
+    }
+    serial->println();
+    serial->print("TX: ");
+    for(int i=0;i<sizeof(OutputFrame);i++) {
+        serial->print(((uint8_t *) output)[i], HEX);
+        serial->print(" ");
+    }
+    serial->println();
+    serial->println();
+
+    serial->println("[Muxers]");
+    serial->print("Count: ");
+    serial->print(_MUX_COUNT);
+    serial->print("  NO: "); // Number of muxes
+    serial->print(_MUX_CURRENT);
+    serial->print("  CH: ");  // Current channel
+    serial->print(_MUX_CURRENT_CHANNEL, HEX);
+    serial->print(" IS: "); // Internal state
+    printBits(_MUX_STATE, 32);
+    serial->println();
+    for(int i=0;i<MAX_MUXERS;i++) {
+        Mux *mux = _MUXERS[i];
+        if(mux) {
+            serial->print(" #");
+            serial->print(i);
+            serial->print(": ");
+            printBits(_MUXERS[i]->getState(), 32);
+            serial->println();
+        }
+    }
+    serial->println();
+
+    serial->println("[Console]");
+    serial->print("Indicators: ");
     serial->print(console->getIndicatorsCount());
-    serial->print(" Switches count: ");
+    serial->print("  Switches: ");
     serial->println(console->getSwitchesCount());
     serial->println();
 
     serial->println("Inputs");
     serial->println("-------------------------------------------");
     serial->print("I0: ");
-    serial->print(inputs->indicator0, BIN);
+    printBits(inputs->indicator0, 8);
     serial->print(" I1: ");
-    serial->print(inputs->indicator1, BIN);
+    printBits(inputs->indicator1, 8);
     serial->print(" I2: ");
-    serial->print(inputs->indicator2, BIN);
+    printBits(inputs->indicator2, 8);
     serial->print(" I3: ");
-    serial->print(inputs->indicator3, BIN);
+    printBits(inputs->indicator3, 8);
     serial->print(" I4: ");
-    serial->println(inputs->indicator4, BIN);
+    printBits(inputs->indicator4, 8);
+    serial->println();
     serial->print("BP: ");
     serial->print(inputs->break_pressure);
     serial->print(" PP: ");
@@ -61,7 +170,17 @@ void ConsoleDebug::send() {
     serial->print(" HC2: ");
     serial->print(inputs->hv_current2);
     serial->print(" HC3: ");
-    serial->println(inputs->hv_current3);
+    serial->print(inputs->hv_current3);
+    serial->println();
+    serial->print("SPD: ");
+    serial->print(inputs->tacho);
+    serial->print(" ODO: ");
+    serial->print(inputs->odometer);
+    serial->print(" LVV: ");
+    serial->print(inputs->lv_voltage);
+    serial->print(" RCH: ");
+    serial->print(inputs->radio_channel);
+    serial->println("");
     serial->println("");
     serial->println("Outputs");
     serial->println("-------------------------------------------");
@@ -97,7 +216,7 @@ void ConsoleDebug::clearScreen() {
 }
 
 /* based on: http://engineeringnotes.blogspot.com/2016/10/printbits-routine.html */
-void ConsoleDebug::printBits(long int n, int numBits) {
+void ConsoleDebug::printBits(uint32_t n, int numBits) {
     char b;
     for (byte i = 0; i < numBits; i++) {
         // shift 1 and mask to identify each bit value

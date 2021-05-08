@@ -76,8 +76,10 @@ void MuxSwitch::setup() {
 }
 
 bool MuxSwitch::probe() {
+    /*
     this->mux->setDataPinMode(this->mode);
     this->mux->channel(this->channel);
     this->mux->enable();
-    return this->mux->readDigital();
+    */
+    return this->mux->getState() & (1<<this->channel);
 };

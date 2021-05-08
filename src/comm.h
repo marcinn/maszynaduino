@@ -4,6 +4,17 @@
 #include "Arduino.h"
 
 
+class BaseConsole {
+    public:
+        BaseConsole();
+        virtual void update();
+        virtual void transmit();
+        bool isInitialized();
+    protected:
+        bool initialized = false;
+};
+
+
 struct __attribute__((packed))  InputFrame {         // bajt
     uint8_t preamble[4];       // 0-3
     uint16_t tacho;             // 4-5
@@ -55,5 +66,22 @@ class MaSzynaUART {
         InputFrame tempInput;
 }
 */
+#define MAX_CONSOLES 10
+
+
+class Transmitter {
+    public:
+        void registerConsole(BaseConsole *);
+        void transmitNextConsole();
+        bool isTransmissionActive();
+        uint8_t getRegisteredConsolesNumber();
+    private:
+        uint8_t consolesNum = 0;
+        uint8_t currentConsole = 0;
+        bool transmissionActive = false;
+        BaseConsole *consoles[MAX_CONSOLES] = {};
+};
+
+extern Transmitter MaszynaTransmitter;
 
 #endif

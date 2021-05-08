@@ -3,7 +3,7 @@
 
 
 bool Indicator::readState(InputFrame *inputs) {
-    return ((uint8_t *) inputs)[this->frame+4] & (1 << this->bitNum);
+    return ((uint8_t *) inputs)[this->frame] & (1 << this->bitNum);
 }
 
 void Indicator::update(InputFrame *inputs) {
@@ -37,8 +37,10 @@ void MuxIndicator::setup() {
 }
 
 void MuxIndicator::respond() {
+    /*
     this->mux->writeDigital(this->state);
     this->mux->setDataPinMode(OUTPUT);
     this->mux->channel(this->channel);
     this->mux->enable();
+    */
 }
