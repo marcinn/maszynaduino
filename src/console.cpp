@@ -31,7 +31,11 @@ void Console::setup() {
     }
 
     while(!this->serial) {}
+#ifdef MASZYNADUINO_MASZYNA_UART_SYNC_BUG_WORKAROUND
     this->serial->setTimeout(100);
+#else
+    this->serial->setTimeout(1000);
+#endif
     this->initialized = true;
 }
 void Console::update() {
@@ -46,73 +50,17 @@ void Console::update() {
 }
 void Console::transmit() {
     bool readframe = false;
-    //this->serial->readBytes((byte *) &this->tmpBuf, 4);
-            /*
-            if(!this->transmissionActive) {
-                this->serial->write((byte *) &this->output, sizeof(this->output));
-                this->transmissionActive = true;
-            } else {
-                this->serial->readBytes((byte *) &this->input, sizeof(this->input));
-                this->serial->write((byte *) &this->output, sizeof(this->output));
-            }*/
-           if(serial->availableForWrite() >= sizeof(OutputFrame)) {
-                this->serial->write((byte *) &this->output, sizeof(OutputFrame));
-            }
-           if(serial->available() >= sizeof(InputFrame)) {
-            this->serial->readBytes((byte *) &this->input, sizeof(InputFrame));
-           }
-            //this->serial->write((byte *) &this->preamble, 4);
-    /*
-       if(this->serial->available() > 3) {
-       if(!this->awaitingFrame) {
-       this->serial->readBytes((uint8_t *) &this->tmpBuf, 4);
-       if(this->tmpBuf[0] == 0xEF && this->tmpBuf[1] == 0xEF && this->tmpBuf[2] == 0xEF && this->tmpBuf[3] == 0xEF) {
-       this->synced = true;
-       readframe = true;
-       } else {
-       this->synced = false;
-       }
-       }
-       if(readframe && this->synced) {
-       if(this->serial->available() >= sizeof(this->input)) {
-       this->serial->readBytes((byte *) &this->input, sizeof(this->input));
-       }
-       }
-       }
-       */
-    /*
-       if(this->serial) {
-       if(!this->synced) {
-       if(this->serial->available()) {
-       uint8_t c = this->serial->read();
-       if (c==0xEF) {
-       this->syncstep++;
-       if(this->syncstep==4) {
-       this->synced = true;
-       this->syncstep = 0;
-       if(this->serial->available() >= sizeof(this->input)) {
-       this->serial->readBytes((byte *) &this->input, sizeof(this->input));
-       }
-       }
-       } else {
-       this->syncstep = 0;
-       }
-       }
-       } else {
-       if(this->serial->available() > 3) {
-       this->serial->readBytes((uint8_t *) &this->tmpBuf, 4);
-       if(!(this->tmpBuf[0] == 0xEF && this->tmpBuf[1] == 0xEF && this->tmpBuf[2] == 0xEF && this->tmpBuf[3] == 0xEF)) {
-       this->synced = false;
-       }
-       }
-       if(this->synced && this->serial->available() >= sizeof(this->input)) {
-       this->serial->readBytes((byte *) &this->input, sizeof(this->input));
-       }
-       }
-       this->serial->write(this->preamble, 4);
-       this->serial->write((byte *) &this->output, sizeof(this->output));
-       }
-       */
+#ifdef MASZYNADUINO_MASZYNA_UART_SYNC_BUG_WORKAROUND
+    this->serial->readBytes((byte *) &this->input, sizeof(InputFrame));
+    this->serial->write((byte *) &this->output, sizeof(OutputFrame));
+#else
+    if(serial->available() >= sizeof(InputFrame)) {
+        this->serial->readBytes((byte *) &this->input, sizeof(InputFrame));
+    }
+    if(serial->availableForWrite() >= sizeof(OutputFrame)) {
+        this->serial->write((byte *) &this->output, sizeof(OutputFrame));
+    }
+#endif
 }
 InputFrame* Console::getInputs() {
     return &this->input;

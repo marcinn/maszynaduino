@@ -1,6 +1,8 @@
 #ifndef MASZYNADUINO_CONSOLE_H
 #define MASZYNADUINO_CONSOLE_H
 
+#define MASZYNADUINO_MASZYNA_UART_SYNC_BUG_WORKAROUND
+
 #include "Arduino.h"
 #include "switches.h"
 #include "indicators.h"
