@@ -30,6 +30,8 @@ void Console::setup() {
         this->indicators[i]->setup();
     }
 
+    while(!this->serial) {}
+    this->serial->setTimeout(100);
     this->initialized = true;
 }
 void Console::update() {
@@ -45,7 +47,6 @@ void Console::update() {
 void Console::transmit() {
     bool readframe = false;
     //this->serial->readBytes((byte *) &this->tmpBuf, 4);
-        if(this->serial) {
             /*
             if(!this->transmissionActive) {
                 this->serial->write((byte *) &this->output, sizeof(this->output));
@@ -54,10 +55,13 @@ void Console::transmit() {
                 this->serial->readBytes((byte *) &this->input, sizeof(this->input));
                 this->serial->write((byte *) &this->output, sizeof(this->output));
             }*/
-            this->serial->readBytes((byte *) &this->input, sizeof(this->input));
-            this->serial->write((byte *) &this->output, sizeof(this->output));
+           if(serial->availableForWrite() >= sizeof(OutputFrame)) {
+                this->serial->write((byte *) &this->output, sizeof(OutputFrame));
+            }
+           if(serial->available() >= sizeof(InputFrame)) {
+            this->serial->readBytes((byte *) &this->input, sizeof(InputFrame));
+           }
             //this->serial->write((byte *) &this->preamble, 4);
-        }
     /*
        if(this->serial->available() > 3) {
        if(!this->awaitingFrame) {
