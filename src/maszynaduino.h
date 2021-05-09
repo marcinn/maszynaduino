@@ -6,7 +6,7 @@
 #endif
 
 #include "mux.h"
-#include "consoledebug.h"
+#include "debugmonitor.h"
 #include "console.h"
 #include "switches.h"
 #include "indicators.h"

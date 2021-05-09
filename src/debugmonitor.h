@@ -6,9 +6,9 @@
 #include "console.h"
 #include "comm.h"
 
-class ConsoleDebug {
+class DebugMonitor {
     public:
-        ConsoleDebug(HardwareSerial *debugSerial, Transmitter *transmitter, Console *console);
+        DebugMonitor(HardwareSerial *debugSerial, Transmitter *transmitter, Console *console);
         void setup();
         void update();
         void transmit();

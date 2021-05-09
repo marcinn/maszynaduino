@@ -1,6 +1,6 @@
 #include "Arduino.h"
 #include "comm.h"
-#include "consoledebug.h"
+#include "debugmonitor.h"
 
 extern MaszynaState *Maszyna;
 

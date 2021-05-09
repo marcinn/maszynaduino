@@ -1,5 +1,5 @@
 #include "Arduino.h"
-#include "consoledebug.h"
+#include "debugmonitor.h"
 #include "comm.h"
 #include "mux.h"
 #include "version.h"
@@ -10,31 +10,31 @@ extern uint8_t _MUX_COUNT;
 extern uint8_t _MUX_CURRENT_CHANNEL;
 extern Mux* _MUXERS[];
 
-ConsoleDebug::ConsoleDebug(HardwareSerial *debugSerial, Transmitter *transmitter, Console *console) {
+DebugMonitor::DebugMonitor(HardwareSerial *debugSerial, Transmitter *transmitter, Console *console) {
     this->serial = debugSerial;
     this->console = console;
     this->transmitter = transmitter;
 }
 
-void ConsoleDebug::setup() {
+void DebugMonitor::setup() {
     this->serial->begin(500000);
 }
 
-void ConsoleDebug::log(const String &s) {
+void DebugMonitor::log(const String &s) {
     if(this->serial && this->serial->availableForWrite()) {
         this->serial->println(s);
     }
 }
 
-void ConsoleDebug::print(const String &s) { serial->print(s); }
-void ConsoleDebug::println(const String &s) { serial->println(s); }
-void ConsoleDebug::print(int s, int m) { serial->print(s, m); }
-void ConsoleDebug::println(int s, int m) { serial->println(s, m); }
-void ConsoleDebug::print(bool s, int m) { serial->print(s, m); }
-void ConsoleDebug::println(bool s, int m) { serial->println(s, m); }
-void ConsoleDebug::println() { serial->println(); }
+void DebugMonitor::print(const String &s) { serial->print(s); }
+void DebugMonitor::println(const String &s) { serial->println(s); }
+void DebugMonitor::print(int s, int m) { serial->print(s, m); }
+void DebugMonitor::println(int s, int m) { serial->println(s, m); }
+void DebugMonitor::print(bool s, int m) { serial->print(s, m); }
+void DebugMonitor::println(bool s, int m) { serial->println(s, m); }
+void DebugMonitor::println() { serial->println(); }
 
-bool ConsoleDebug::isDataChanged() {
+bool DebugMonitor::isDataChanged() {
     /*
     bool c1 = memcmp(&previousInput, console->getInputs(), sizeof(previousInput));
     bool c2 = memcmp(&previousOutput, console->getOutputs(), sizeof(previousOutput));
@@ -48,10 +48,10 @@ bool ConsoleDebug::isDataChanged() {
     }
 }
 
-void ConsoleDebug::update() {
+void DebugMonitor::update() {
 }
 
-void ConsoleDebug::transmit() {
+void DebugMonitor::transmit() {
     if(!isDataChanged()) {
         return;
     }
@@ -192,7 +192,7 @@ void ConsoleDebug::transmit() {
 
 }
 
-void ConsoleDebug::clearScreen() {
+void DebugMonitor::clearScreen() {
     serial->write(27);       // ESC command
     serial->print("[2J");    // clear screen command
     serial->write(27);
@@ -200,7 +200,7 @@ void ConsoleDebug::clearScreen() {
 }
 
 /* based on: http://engineeringnotes.blogspot.com/2016/10/printbits-routine.html */
-void ConsoleDebug::printBits(uint32_t n, int numBits) {
+void DebugMonitor::printBits(uint32_t n, int numBits) {
     char b;
     for (byte i = 0; i < numBits; i++) {
         // shift 1 and mask to identify each bit value
