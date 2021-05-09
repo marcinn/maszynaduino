@@ -3,26 +3,19 @@
 #include "comm.h"
 
 
-Console::Console(HardwareSerial *serial) {
-    this->serial = serial;
-    //MaszynaTransmitter.registerConsole(this);
-}
-
-Console::Console(HardwareSerial *serial, Switch **switches, int switchesCount) : Console(serial) {
+Console::Console(Switch **switches, int switchesCount) {
     for (int i = 0; i < switchesCount; i++) {
         this->addSwitch(switches[i]);
     }
 }
 
-Console::Console(HardwareSerial *serial, Switch **switches, int switchesCount, Indicator **indicators, int indicatorsCount) : Console(serial, switches, switchesCount) {
+Console::Console(Switch **switches, int switchesCount, Indicator **indicators, int indicatorsCount) : Console(switches, switchesCount) {
     for (int i=0; i<indicatorsCount; i++) {
         this->addIndicator(indicators[i]);
     }
 }
 
 void Console::setup() {
-    this->serial->begin(19200, SERIAL_8N1);
-
     for (int i = 0; i < this->switchesCount; i++) {
         this->switches[i]->setup();
     }
@@ -30,43 +23,19 @@ void Console::setup() {
         this->indicators[i]->setup();
     }
 
-    while(!this->serial) {}
-#ifdef MASZYNADUINO_MASZYNA_UART_SYNC_BUG_WORKAROUND
-    this->serial->setTimeout(100);
-#else
-    this->serial->setTimeout(1000);
-#endif
-    this->initialized = true;
+    /* automatically initialize timers, i.e. mux ISR */
+    Mux::initializeTimers();
 }
+
 void Console::update() {
     for (int i = 0; i < this->switchesCount; i++) {
         this->switches[i]->update();
-        this->switches[i]->respond(this);
+        this->switches[i]->respond(Maszyna);
     }
     for (int i = 0; i < this->indicatorsCount; i++) {
-        this->indicators[i]->update(&this->input);
+        this->indicators[i]->update(Maszyna);
         this->indicators[i]->respond();
     }
-}
-void Console::transmit() {
-    bool readframe = false;
-#ifdef MASZYNADUINO_MASZYNA_UART_SYNC_BUG_WORKAROUND
-    this->serial->readBytes((byte *) &this->input, sizeof(InputFrame));
-    this->serial->write((byte *) &this->output, sizeof(OutputFrame));
-#else
-    if(serial->available() >= sizeof(InputFrame)) {
-        this->serial->readBytes((byte *) &this->input, sizeof(InputFrame));
-    }
-    if(serial->availableForWrite() >= sizeof(OutputFrame)) {
-        this->serial->write((byte *) &this->output, sizeof(OutputFrame));
-    }
-#endif
-}
-InputFrame* Console::getInputs() {
-    return &this->input;
-}
-OutputFrame* Console::getOutputs() {
-    return &this->output;
 }
 
 void Console::addSwitch(Switch *_switch) {
@@ -85,39 +54,4 @@ int Console::getSwitchesCount() {
 
 int Console::getIndicatorsCount() {
     return this->indicatorsCount;
-}
-
-void Console::setOutputSwitch(uint8_t num, bool state) {
-    if(num > 47) {
-        return;
-    }
-
-    uint8_t const byteNum = (num / 8);
-    uint8_t const bitNum = num % 8;
-
-    this->setOutputBit(byteNum, bitNum, state);
-}
-
-void Console::setOutputBit(uint8_t byteNum, uint8_t bitNum, bool state) {
-    if(state) {
-        ((uint8_t *) &this->output)[byteNum+4] |= 1 << bitNum;
-    } else {
-        ((uint8_t *) &this->output)[byteNum+4] &= ~(1 << bitNum);
-    }
-}
-
-HardwareSerial* Console::getSerial() {
-    return this->serial;
-}
-
-int Console::getSerialBaud() {
-    return this->baud;
-}
-
-bool Console::isTransmissionActive() {
-    return this->transmissionActive;
-}
-
-bool Console::isTransmissionStarted() {
-    return this->transmissionStarted;
 }

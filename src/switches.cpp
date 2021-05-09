@@ -3,26 +3,26 @@
 #include "console.h"
 
 void Switch::update() {
-    bool value = this->probe();
-    value = (this->invert ? !value : value);
-    value = (this->mode == INPUT_PULLUP ? !value : value);
+    bool value = probe();
+    value = (invert ? !value : value);
+    value = (mode == INPUT_PULLUP ? !value : value);
     this->state = value;
 }
 
-void Switch::respond(Console *console) {
-    console->setOutputSwitch((this->frame << 3) + this->bitNum, this->state);
+void Switch::respond(MaszynaState *state) {
+    state->setOutputSwitch((frame << 3) + bitNum, state);
 }
 
 bool Switch::getState() {
-    return this->state;
+    return state;
 }
 
 bool Switch::isOn() {
-    return this->state;
+    return state;
 }
 
 bool Switch::isOff() {
-    return !this->state;
+    return !state;
 }
 
 /* Pin Switch */
@@ -44,13 +44,13 @@ PinSwitch::PinSwitch(int pin, int outputNumber, SwitchMode invert)
 };
 
 void PinSwitch::setup() {
-    pinMode(this->pin, INPUT);
-    digitalWrite(this->pin, mode);
-    this->update();
+    pinMode(pin, INPUT);
+    digitalWrite(pin, mode);
+    update();
 }
 
 bool PinSwitch::probe() {
-    return digitalRead(this->pin);
+    return digitalRead(pin);
 };
 
 
@@ -72,7 +72,7 @@ MuxSwitch::MuxSwitch(Mux *mux, int channel, int outputNumber, SwitchMode invert)
     : MuxSwitch::MuxSwitch(mux, channel, outputNumber / 8, outputNumber % 8, invert) { }
 
 void MuxSwitch::setup() {
-    this->update();
+    update();
 }
 
 bool MuxSwitch::probe() {
@@ -81,5 +81,5 @@ bool MuxSwitch::probe() {
     this->mux->channel(this->channel);
     this->mux->enable();
     */
-    return this->mux->getState() & (1<<this->channel);
+    return mux->getState() & (1 << channel);
 };

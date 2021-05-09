@@ -3,6 +3,7 @@
 
 #include "Arduino.h"
 #include "mux.h"
+#include "comm.h"
 
 
 class Console;
@@ -15,7 +16,7 @@ class Switch {
   public:
     virtual void setup();
     void update();
-    void respond(Console *console);
+    void respond(MaszynaState *state);
     bool getState();
     bool isOn();
     bool isOff();

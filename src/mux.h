@@ -50,11 +50,15 @@ class Mux {
         uint32_t getState();
         uint8_t channelsCount() { return this->channels; }
 
+        static void initializeTimers();
+
     private:
         int pinS0, pinS1, pinS2, pinS3;
         int pinEnable, pinData;
         int channels = 16;
         uint32_t state = 0;
+        static bool timersInitialized;
 };
+
 
 #endif

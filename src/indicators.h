@@ -8,14 +8,13 @@
 
 class Indicator {
     public:
-        void update(InputFrame *inputs);
+        void update(MaszynaState *state);
         virtual void setup();
         virtual void respond();
 
     protected:
-        virtual bool readState(InputFrame *inputs);
-        int frame;
-        int bitNum;
+        virtual bool readState(MaszynaState *state);
+        int indicatorNumber;
         bool state = false;
         bool invert = false;
 };
@@ -23,7 +22,7 @@ class Indicator {
 
 class PinIndicator : public Indicator {
     public:
-        PinIndicator(int pin, int frame, int bitNum);
+        PinIndicator(int pin, int indicatorNumber);
         virtual void setup();
         virtual void respond();
     private:
@@ -33,7 +32,7 @@ class PinIndicator : public Indicator {
 
 class MuxIndicator : public Indicator {
     public:
-        MuxIndicator(Mux *mux, int channel, int frameNum, int bitNum);
+        MuxIndicator(Mux *mux, int channel, int indicatorNumber);
         virtual void setup();
         virtual void respond();
     private:

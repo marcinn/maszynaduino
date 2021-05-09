@@ -41,36 +41,6 @@ ISR(TIMER2_COMPA_vect) {
     }
 }
 
-void mux_setup_interrupts() {
-    cli();
-    /*
-    TCCR0A = 0;// set entire TCCR1A register to 0
-    TCCR0B = 0;// same for TCCR1B
-    TCNT0  = 0;//initialize counter value to 0
-    // set compare match register for 1hz increments
-    OCR0A = 154;
-    //OCR1A = 1300;
-    // turn on CTC mode
-    TCCR0B |= (1 << WGM12);
-    // Set CS10 and CS12 bits for 1024 prescaler
-    TCCR0B |= (1 << CS12) | (1 << CS10);
-    */
-    //TIMSK0 |= (1 << OCIE0A);
-
-    TCCR2A = 0;// set entire TCCR1A register to 0
-    TCCR2B = 0;// same for TCCR1B
-    TCNT2  = 0;//initialize counter value to 0
-    // set compare match register for 1hz increments
-    OCR2A = 154;
-    //OCR1A = 1300;
-    // turn on CTC mode
-    TCCR2B |= (1 << WGM12);
-    // Set CS10 and CS12 bits for 1024 prescaler
-    TCCR2B |= (1 << CS12) | (1 << CS10);
-    TIMSK2 |= (1 << OCIE2A);
-    sei();
-}
-
 
 Mux::Mux(int pinEnable, int pinData, int pinS0, int pinS1, int pinS2, int pinS3) {
     this->pinEnable = pinEnable;
@@ -138,3 +108,39 @@ void Mux::channel(int ch) {
     digitalWrite(this->pinS2, ch & 4);
     digitalWrite(this->pinS3, ch & 8);
 }
+
+void Mux::initializeTimers() {
+    if(timersInitialized) {
+        return;
+    }
+
+    cli();
+    /*
+    TCCR0A = 0;// set entire TCCR1A register to 0
+    TCCR0B = 0;// same for TCCR1B
+    TCNT0  = 0;//initialize counter value to 0
+    // set compare match register for 1hz increments
+    OCR0A = 154;
+    //OCR1A = 1300;
+    // turn on CTC mode
+    TCCR0B |= (1 << WGM12);
+    // Set CS10 and CS12 bits for 1024 prescaler
+    TCCR0B |= (1 << CS12) | (1 << CS10);
+    */
+    //TIMSK0 |= (1 << OCIE0A);
+
+    TCCR2A = 0;// set entire TCCR1A register to 0
+    TCCR2B = 0;// same for TCCR1B
+    TCNT2  = 0;//initialize counter value to 0
+    // set compare match register for 1hz increments
+    OCR2A = 154;
+    //OCR1A = 1300;
+    // turn on CTC mode
+    TCCR2B |= (1 << WGM12);
+    // Set CS10 and CS12 bits for 1024 prescaler
+    TCCR2B |= (1 << CS12) | (1 << CS10);
+    TIMSK2 |= (1 << OCIE2A);
+    sei();
+}
+
+bool Mux::timersInitialized = false;

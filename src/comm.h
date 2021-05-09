@@ -3,17 +3,7 @@
 
 #include "Arduino.h"
 
-
-class BaseConsole {
-    public:
-        BaseConsole();
-        virtual void update();
-        virtual void transmit();
-        bool isInitialized();
-    protected:
-        bool initialized = false;
-};
-
+#define MASZYNADUINO_MASZYNA_UART_SYNC_BUG_WORKAROUND
 
 struct __attribute__((packed))  InputFrame {         // bajt
     uint8_t preamble[4];       // 0-3
@@ -55,33 +45,50 @@ struct __attribute__((packed))  OutputFrame {
 };
 
 
-/*
-class MaSzynaUART {
+class MaszynaState {
     public:
-        MaSzynaUART(HardwareSerial *serial, int baud=57600);
-        void receive(InputFrame *);
-        void send(OutputFrame *);
+        InputFrame* getInputs();
+        OutputFrame* getOutputs();
+        void setInputs(InputFrame *);
+        bool getIndicatorState(int indicatorNumber);
+        void setOutputBit(uint8_t num, uint8_t bitNum, bool state);
+        void setOutputSwitch(uint8_t num, bool state);
 
     private:
-        InputFrame tempInput;
-}
-*/
-#define MAX_CONSOLES 10
+        InputFrame input = {{0}, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, {0}};
+        OutputFrame output = {{0xEF, 0xEF, 0xEF, 0xEF}, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, {0}};
+};
 
 
 class Transmitter {
     public:
-        void registerConsole(BaseConsole *);
-        void transmitNextConsole();
+        Transmitter();
+        virtual void transmit();
+        virtual void debugMonitor(HardwareSerial *);
         bool isTransmissionActive();
-        uint8_t getRegisteredConsolesNumber();
-    private:
-        uint8_t consolesNum = 0;
-        uint8_t currentConsole = 0;
+        bool isTransmissionStarted();
+        MaszynaState *getState();
+    protected:
+        MaszynaState *state;
         bool transmissionActive = false;
-        BaseConsole *consoles[MAX_CONSOLES] = {};
+        bool transmissionStarted = false;
 };
 
-extern Transmitter MaszynaTransmitter;
+class SerialTransmitter : public Transmitter {
+    public:
+        SerialTransmitter(HardwareSerial *serial, int baud=57600);
+        void transmit();
+        HardwareSerial *getSerial();
+        int getSerialBaud();
+        void debugMonitor(HardwareSerial *);
+
+    private:
+        HardwareSerial *serial;
+        int baud = 19200;
+        uint8_t tmpBuf[100];
+        bool initialized = false;
+};
+
+extern MaszynaState *Maszyna;
 
 #endif

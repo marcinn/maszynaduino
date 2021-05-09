@@ -1,18 +1,18 @@
 #include "Arduino.h"
 #include "indicators.h"
+#include "comm.h"
 
 
-bool Indicator::readState(InputFrame *inputs) {
-    return ((uint8_t *) inputs)[this->frame] & (1 << this->bitNum);
+bool Indicator::readState(MaszynaState *state) {
+    return state->getIndicatorState(indicatorNumber);
 }
 
-void Indicator::update(InputFrame *inputs) {
-    this->state = this->readState(inputs);
+void Indicator::update(MaszynaState *state) {
+    this->state = this->readState(state);
 }
 
-PinIndicator::PinIndicator(int pin, int frame, int bitNum) {
-    this->frame = frame;
-    this->bitNum = bitNum;
+PinIndicator::PinIndicator(int pin, int indicatorNumber) {
+    this->indicatorNumber = indicatorNumber;
     this->pin = pin;
 }
 
@@ -22,13 +22,12 @@ void PinIndicator::setup() {
 }
 
 void PinIndicator::respond() {
-    digitalWrite(this->pin, this->state ? HIGH : LOW);
+    digitalWrite(pin, state ? HIGH : LOW);
 }
 
 
-MuxIndicator::MuxIndicator(Mux *mux, int channel, int frameNum, int bitNum) {
-    this->bitNum = bitNum;
-    this->frame = frameNum;
+MuxIndicator::MuxIndicator(Mux *mux, int channel, int indicatorNumber) {
+    this->indicatorNumber = indicatorNumber;
     this->mux = mux;
     this->channel = channel;
 }

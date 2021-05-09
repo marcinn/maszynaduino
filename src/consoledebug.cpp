@@ -10,22 +10,14 @@ extern uint8_t _MUX_COUNT;
 extern uint8_t _MUX_CURRENT_CHANNEL;
 extern Mux* _MUXERS[];
 
-ConsoleDebug::ConsoleDebug(Console * console, HardwareSerial *debugSerial) {
+ConsoleDebug::ConsoleDebug(HardwareSerial *debugSerial, Transmitter *transmitter, Console *console) {
     this->serial = debugSerial;
     this->console = console;
-    //MaszynaTransmitter.registerConsole(this);
+    this->transmitter = transmitter;
 }
-
-/*
-void ConsoleDebug::addConsole(Console *console) {
-    this->consoles[this->consolesNum] = console;
-    this->consolesNum++;
-}
-*/
 
 void ConsoleDebug::setup() {
     this->serial->begin(500000);
-    this->initialized = true;
 }
 
 void ConsoleDebug::log(const String &s) {
@@ -33,6 +25,14 @@ void ConsoleDebug::log(const String &s) {
         this->serial->println(s);
     }
 }
+
+void ConsoleDebug::print(const String &s) { serial->print(s); }
+void ConsoleDebug::println(const String &s) { serial->println(s); }
+void ConsoleDebug::print(int s, int m) { serial->print(s, m); }
+void ConsoleDebug::println(int s, int m) { serial->println(s, m); }
+void ConsoleDebug::print(bool s, int m) { serial->print(s, m); }
+void ConsoleDebug::println(bool s, int m) { serial->println(s, m); }
+void ConsoleDebug::println() { serial->println(); }
 
 bool ConsoleDebug::isDataChanged() {
     /*
@@ -60,45 +60,29 @@ void ConsoleDebug::transmit() {
         return;
     }
 
-    const OutputFrame *outputs = console->getOutputs();
-    const InputFrame *inputs = console->getInputs();
+    // TODO: Maszyna ref should be changeable
+    //MaszynaState *state = transmitter->getState();
+    MaszynaState *state = Maszyna;
 
-    memcpy(&previousInput, inputs, sizeof(previousInput));
-    memcpy(&previousOutput, outputs, sizeof(previousOutput));
+    InputFrame *inputs = state->getInputs();
+    OutputFrame *outputs = state->getOutputs();
 
     this->clearScreen();
 
-    HardwareSerial *cserial = this->console->getSerial();
-
     serial->print("Maszynaduino ");
     serial->print(MASZYNADUINO_VERSION_STR);
-    serial->print(" Monitor            Running time: ");
+    serial->print(" Monitor               Uptime: ");
     serial->print(millis() / 1000);
-    serial->print("s");
-    serial->print("  TC#: ");
-    serial->println(MaszynaTransmitter.getRegisteredConsolesNumber());
+    serial->println("s");
     serial->println("----------------------------------------------------------------");
     serial->println();
 
-    serial->println("[Serial]");
-    serial->print("Active: ");
-    serial->print((bool) cserial);
-    serial->print("  InBuf: ");
-    serial->print(cserial->available());
-    serial->print("  WrAvl: ");
-    serial->print(cserial->availableForWrite());
-    serial->print("  Baud: ");
-    serial->print(this->console->getSerialBaud());
-    serial->print("  TrnActive: ");
-    serial->print(this->console->isTransmissionActive());
-    serial->println();
-
-    InputFrame *input = this->console->getInputs();
-    OutputFrame *output = this->console->getOutputs();
+    serial->println("[Transmitter]");
+    transmitter->debugMonitor(serial);  // does not work, dunno why
 
     serial->print("RX: ");
     for(int i=0;i<sizeof(InputFrame);i++) {
-        serial->print(((uint8_t *) input)[i], HEX);
+        serial->print(((uint8_t *) inputs)[i], HEX);
         if(i>0 && (i % (sizeof(InputFrame)/2)) == 0) {
             serial->println();
             serial->print("    ");
@@ -109,7 +93,7 @@ void ConsoleDebug::transmit() {
     serial->println();
     serial->print("TX: ");
     for(int i=0;i<sizeof(OutputFrame);i++) {
-        serial->print(((uint8_t *) output)[i], HEX);
+        serial->print(((uint8_t *) outputs)[i], HEX);
         serial->print(" ");
     }
     serial->println();
