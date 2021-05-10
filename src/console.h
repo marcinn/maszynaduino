@@ -6,6 +6,10 @@
 #include "indicators.h"
 #include "comm.h"
 
+#ifndef MAX_CONSOLES
+#define MAX_CONSOLES 4
+#endif
+
 #ifndef CONSOLE_MAX_SWITCHES
 #define CONSOLE_MAX_SWITCHES 100
 #endif
@@ -26,6 +30,8 @@ class Console {
     void addIndicator(Indicator *indicator);
     int getSwitchesCount();
     int getIndicatorsCount();
+    Indicator *getIndicator(int num);
+    Switch *getSwitch(int num);
   private:
     int switchesCount = 0;
     int indicatorsCount = 0;

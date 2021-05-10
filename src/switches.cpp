@@ -1,6 +1,7 @@
 #include "Arduino.h"
 #include "switches.h"
 #include "console.h"
+#include "debugmonitor.h"
 
 void Switch::update() {
     bool value = probe();
@@ -10,7 +11,7 @@ void Switch::update() {
 }
 
 void Switch::respond(MaszynaState *state) {
-    state->setOutputSwitch((frame << 3) + bitNum, state);
+    state->setOutputSwitch(outputNum, this->state);
 }
 
 bool Switch::getState() {
@@ -25,22 +26,25 @@ bool Switch::isOff() {
     return !state;
 }
 
+void Switch::debugMonitor(DebugMonitor *d) {
+    if(state) {
+        d->print("[*]");
+    } else {
+        d->print("[ ]");
+    }
+}
+
 /* Pin Switch */
 
-PinSwitch::PinSwitch(int pin, int frame, int bitNum, int mode, SwitchMode invert) {
+PinSwitch::PinSwitch(int pin, int outputNum, int mode, SwitchMode invert) {
     this->pin = pin;
-    this->frame = frame;
-    this->bitNum = bitNum;
+    this->outputNum = outputNum;
     this->mode = mode;
     this->invert = invert;
 };
 
-PinSwitch::PinSwitch(int pin, int frame, int bitNum)
-    : PinSwitch::PinSwitch(pin, frame, bitNum, INPUT_PULLUP, SwitchMode::NORMAL) {
-};
-
-PinSwitch::PinSwitch(int pin, int outputNumber, SwitchMode invert)
-    : PinSwitch::PinSwitch(pin, outputNumber / 8, outputNumber % 8, INPUT_PULLUP, invert) {
+PinSwitch::PinSwitch(int pin, int outputNum, SwitchMode mode)
+    : PinSwitch::PinSwitch(pin, outputNum, INPUT_PULLUP, mode) {
 };
 
 void PinSwitch::setup() {
@@ -56,30 +60,20 @@ bool PinSwitch::probe() {
 
 /* MuxSwitch */
 
-MuxSwitch::MuxSwitch(Mux *mux, int channel, int frame, int bitNum, SwitchMode invert) {
+MuxSwitch::MuxSwitch(Mux *mux, int channel, int outputNum, SwitchMode invert) {
     this->mux = mux;
     this->channel = channel;
-    this->frame = frame;
-    this->bitNum = bitNum;
+    this->outputNum = outputNum;
     this->invert = invert;
     this->mode = INPUT_PULLUP;
+    mux->setChannelMode(channel, MuxChannelMode::pullup);
 };
 
-MuxSwitch::MuxSwitch(Mux *mux, int channel, int frame, int bitNum) : MuxSwitch::MuxSwitch(mux, channel, frame, bitNum, SwitchMode::NORMAL) {
-}
-
-MuxSwitch::MuxSwitch(Mux *mux, int channel, int outputNumber, SwitchMode invert)
-    : MuxSwitch::MuxSwitch(mux, channel, outputNumber / 8, outputNumber % 8, invert) { }
 
 void MuxSwitch::setup() {
     update();
 }
 
 bool MuxSwitch::probe() {
-    /*
-    this->mux->setDataPinMode(this->mode);
-    this->mux->channel(this->channel);
-    this->mux->enable();
-    */
-    return mux->getState() & (1 << channel);
+    return mux->getChannelState(channel);
 };

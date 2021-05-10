@@ -55,3 +55,19 @@ int Console::getSwitchesCount() {
 int Console::getIndicatorsCount() {
     return this->indicatorsCount;
 }
+
+Indicator *Console::getIndicator(int num) {
+    if(num<indicatorsCount) {
+        return this->indicators[num];
+    } else {
+        return nullptr;
+    }
+}
+
+Switch *Console::getSwitch(int num) {
+    if(num<switchesCount) {
+        return this->switches[num];
+    } else {
+        return nullptr;
+    }
+}

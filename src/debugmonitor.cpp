@@ -28,6 +28,10 @@ void DebugMonitor::log(const String &s) {
 
 void DebugMonitor::print(const String &s) { serial->print(s); }
 void DebugMonitor::println(const String &s) { serial->println(s); }
+void DebugMonitor::print(const char s[]) { serial->print(s); }
+void DebugMonitor::println(const char s[]) { serial->println(s); }
+void DebugMonitor::print(char s) { serial->print(s); }
+void DebugMonitor::println(char s) { serial->println(s); }
 void DebugMonitor::print(int s, int m) { serial->print(s, m); }
 void DebugMonitor::println(int s, int m) { serial->println(s, m); }
 void DebugMonitor::print(bool s, int m) { serial->print(s, m); }
@@ -39,7 +43,7 @@ bool DebugMonitor::isDataChanged() {
     bool c1 = memcmp(&previousInput, console->getInputs(), sizeof(previousInput));
     bool c2 = memcmp(&previousOutput, console->getOutputs(), sizeof(previousOutput));
     */
-    unsigned long second = millis() / 100;
+    unsigned long second = millis() / 250;
     if(second != this->timeCounter) {
         this->timeCounter = second;
         return true;
@@ -115,8 +119,7 @@ void DebugMonitor::transmit() {
             serial->print(" #");
             serial->print(i);
             serial->print(": ");
-            printBits(_MUXERS[i]->getState(), 32);
-            serial->println();
+            mux->debugMonitor(this);
         }
     }
     serial->println();
@@ -126,7 +129,33 @@ void DebugMonitor::transmit() {
     serial->print(console->getIndicatorsCount());
     serial->print("  Switches: ");
     serial->println(console->getSwitchesCount());
-    serial->println();
+    for(int i=0;i<console->getIndicatorsCount();i++) {
+        /*
+        print("IND #");
+        print(i);
+        print(" ");
+        */
+        Indicator *ind = console->getIndicator(i);
+        ind->debugMonitor(this);
+        print("  ");
+        if(i > 0 && i % 6 == 0) {
+            println();
+        }
+    }
+    println();
+    for(int i=0;i<console->getSwitchesCount();i++) {
+        print("SW #");
+        print(i);
+        print(" ");
+        Switch *sw = console->getSwitch(i);
+        sw->debugMonitor(this);
+        print("  ");
+        if(i > 0 && i % 6 == 0) {
+            println();
+        }
+    }
+    println();
+    println();
 
     serial->println("Inputs");
     serial->println("-------------------------------------------");

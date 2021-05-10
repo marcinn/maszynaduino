@@ -34,20 +34,29 @@ enum MuxChannels {
 #define MUXDIR_INPUT 0
 #define MUXDIR_OUTPUT 1
 
+class DebugMonitor;
+
+
+enum MuxChannelMode { pullup=0, output };
+
 class Mux {
     public:
         Mux(int pinEnable, int pinData, int pinS0, int pinS1, int pinS2, int pinS3);
         void setup();
-        void setDataPinMode(int mode);
+        void setChannelMode(uint8_t channel, MuxChannelMode mode);
         void enable();
         void disable();
         bool readDigital();
         int readAnalog();
         void writeDigital(bool state);
-        void writeAnalog(int value);
         void channel(int channel);
         void setState(uint32_t state);
+        MuxChannelMode getChannelMode(int ch);
         uint32_t getState();
+        bool getChannelState(int ch);
+        bool getRequestedChannelState(int ch);
+        void requestChannelState(int ch, bool state);
+        void debugMonitor(DebugMonitor *dbg);
         uint8_t channelsCount() { return this->channels; }
 
         static void initializeTimers();
@@ -57,6 +66,8 @@ class Mux {
         int pinEnable, pinData;
         int channels = 16;
         uint32_t state = 0;
+        uint32_t requestedState = 0;
+        uint32_t channelDirections = 0; // bit 0: input_pullup, bit 1: output
         static bool timersInitialized;
 };
 

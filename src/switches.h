@@ -7,7 +7,7 @@
 
 
 class Console;
-
+class DebugMonitor;
 
 enum SwitchMode { NORMAL=0, INVERT };
 
@@ -20,10 +20,10 @@ class Switch {
     bool getState();
     bool isOn();
     bool isOff();
+    void debugMonitor(DebugMonitor *d);
   protected:
     int mode;
-    int frame;
-    int bitNum;
+    int outputNum;
     bool state = false;
     bool invert = false;
 
@@ -33,9 +33,8 @@ class Switch {
 
 class PinSwitch : public Switch {
   public:
-    PinSwitch(int pin, int frame, int bitNum, int mode, SwitchMode invert);
-    PinSwitch(int pin, int frame, int bitNum);
-    PinSwitch(int pin, int outputNumber, SwitchMode invert=SwitchMode::NORMAL);
+    PinSwitch(int pin, int outputNum, int mode, SwitchMode invert);
+    PinSwitch(int pin, int outputNum, SwitchMode mode = SwitchMode::NORMAL);
     void setup();
   protected:
     bool probe();
@@ -46,9 +45,7 @@ class PinSwitch : public Switch {
 
 class MuxSwitch : public Switch {
   public:
-    MuxSwitch(Mux *mux, int channel, int frame, int bitNum, SwitchMode invert);
-    MuxSwitch(Mux *mux, int channel, int frame, int bitNum);
-    MuxSwitch(Mux *mux, int channel, int outputNumber, SwitchMode invert=SwitchMode::NORMAL);
+    MuxSwitch(Mux *mux, int channel, int outputNumber, SwitchMode invert = SwitchMode::NORMAL);
     void setup();
   protected:
     bool probe();

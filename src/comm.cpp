@@ -86,7 +86,7 @@ OutputFrame* MaszynaState::getOutputs() {
 bool MaszynaState::getIndicatorState(int indicatorNum) {
     uint8_t const byteNum = (indicatorNum / 8);
     uint8_t const bitNum = indicatorNum % 8;
-    return ((uint8_t *) &input)[byteNum+4] & (1 << bitNum);
+    return ((uint8_t *) &input.indicator0)[byteNum] & (1 << bitNum);
 }
 
 void MaszynaState::setOutputSwitch(uint8_t num, bool state) {

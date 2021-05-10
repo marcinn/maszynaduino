@@ -1,6 +1,7 @@
 #include "Arduino.h"
 #include "mux.h"
 #include "comm.h"
+#include "debugmonitor.h"
 
 
 //uint16_t _MUXDIR[MAX_MUXERS] = {MUXDIR_INPUT};
@@ -11,17 +12,25 @@ volatile uint8_t _MUX_CURRENT_CHANNEL = 0;
 
 Mux *_MUXERS[MAX_MUXERS] = {};
 volatile uint8_t _MUX_CURRENT = 0;
+volatile uint8_t _MUX_PREV = 0;
 
 
 ISR(TIMER2_COMPA_vect) {
     if(_MUX_COUNT > 0) {
+        _MUXERS[_MUX_PREV]->disable();
         Mux *mux = _MUXERS[_MUX_CURRENT];
         mux->channel(_MUX_CURRENT_CHANNEL);
-        if(_MUX_CURRENT_CHANNEL == 0) {
-            mux->setDataPinMode(INPUT_PULLUP);
+        bool state;
+
+        if(mux->getChannelMode(_MUX_CURRENT_CHANNEL) == MuxChannelMode::pullup) {
+            mux->enable();
+            state = mux->readDigital();
+            mux->disable();
+        } else {
+            state = mux->getRequestedChannelState(_MUX_CURRENT_CHANNEL);
+            mux->writeDigital(state);
             mux->enable();
         }
-        bool state = mux->readDigital();
         if(state) {
             _MUX_STATE |= (1<<_MUX_CURRENT_CHANNEL);
         } else {
@@ -29,10 +38,10 @@ ISR(TIMER2_COMPA_vect) {
         }
         _MUX_CURRENT_CHANNEL++;
         if(_MUX_CURRENT_CHANNEL>=mux->channelsCount()) {
-            mux->disable();
             mux->setState(_MUX_STATE);
             _MUX_CURRENT_CHANNEL = 0;
             _MUX_STATE = 0;
+            _MUX_PREV = _MUX_CURRENT;
             _MUX_CURRENT++;
             if(_MUX_CURRENT == _MUX_COUNT) {
                 _MUX_CURRENT = 0;
@@ -74,10 +83,6 @@ uint32_t Mux::getState() {
     return this->state;
 }
 
-void Mux::setDataPinMode(int mode) {
-    pinMode(this->pinData, mode);
-}
-
 void Mux::enable() {
     digitalWrite(this->pinEnable, LOW);
 }
@@ -98,15 +103,56 @@ void Mux::writeDigital(bool value) {
     return digitalWrite(this->pinData, value ? HIGH : LOW);
 }
 
-void Mux::writeAnalog(int value) {
-    return analogWrite(this->pinData, value);
-}
-
 void Mux::channel(int ch) {
     digitalWrite(this->pinS0, ch & 1);
     digitalWrite(this->pinS1, ch & 2);
     digitalWrite(this->pinS2, ch & 4);
     digitalWrite(this->pinS3, ch & 8);
+    pinMode(
+            this->pinData,
+            channelDirections & (1 << ch) ? OUTPUT : INPUT_PULLUP
+           );
+}
+
+void Mux::setChannelMode(uint8_t channel, MuxChannelMode mode) {
+    if(mode == MuxChannelMode::pullup) {
+        channelDirections &= ~(1 << channel);
+    } else {
+        channelDirections |= (1 << channel);
+    }
+}
+
+MuxChannelMode Mux::getChannelMode(int channel) {
+    return channelDirections & (1 << channel) ? MuxChannelMode::output : pullup;
+}
+
+bool Mux::getChannelState(int channel) {
+    return state & (1 << channel);
+}
+
+bool Mux::getRequestedChannelState(int channel) {
+    return requestedState & (1 << channel);
+}
+
+void Mux::requestChannelState(int channel, bool state) {
+    if(state) {
+        requestedState |= 1 << channel;
+    } else {
+        requestedState &= ~(1 << channel);
+    }
+}
+
+void Mux::debugMonitor(DebugMonitor *d) {
+    d->printBits(state, channels);
+    d->print(" D: ");
+    for(int i=channels-1; i>0; i--) {
+        d->print(channelDirections & (1 << i) ? 'O': '.');
+    }
+    d->print(" RQ: ");
+    for(int i=channels-1; i>0; i--) {
+        d->print(requestedState & (1 << i) ? '+': '-');
+    }
+    d->println();
 }
 
 void Mux::initializeTimers() {
@@ -115,30 +161,17 @@ void Mux::initializeTimers() {
     }
 
     cli();
-    /*
-    TCCR0A = 0;// set entire TCCR1A register to 0
-    TCCR0B = 0;// same for TCCR1B
-    TCNT0  = 0;//initialize counter value to 0
-    // set compare match register for 1hz increments
-    OCR0A = 154;
-    //OCR1A = 1300;
+    //160000
+    TCCR2A = 0; // set entire TCCR2A register to 0
+    TCCR2B = 0; // same for TCCR2B
+    TCNT2  = 0; // initialize counter value to 0
+    // set compare match register for 160000 Hz increments
+    OCR2A = 99; // = 16000000 / (1 * 160000) - 1 (must be <256)
     // turn on CTC mode
-    TCCR0B |= (1 << WGM12);
-    // Set CS10 and CS12 bits for 1024 prescaler
-    TCCR0B |= (1 << CS12) | (1 << CS10);
-    */
-    //TIMSK0 |= (1 << OCIE0A);
-
-    TCCR2A = 0;// set entire TCCR1A register to 0
-    TCCR2B = 0;// same for TCCR1B
-    TCNT2  = 0;//initialize counter value to 0
-    // set compare match register for 1hz increments
-    OCR2A = 154;
-    //OCR1A = 1300;
-    // turn on CTC mode
-    TCCR2B |= (1 << WGM12);
-    // Set CS10 and CS12 bits for 1024 prescaler
-    TCCR2B |= (1 << CS12) | (1 << CS10);
+    TCCR2B |= (1 << WGM21);
+    // Set CS22, CS21 and CS20 bits for 1 prescaler
+    TCCR2B |= (0 << CS22) | (0 << CS21) | (1 << CS20);
+    // enable timer compare interrupt
     TIMSK2 |= (1 << OCIE2A);
     sei();
 }
