@@ -21,7 +21,7 @@ bool Transmitter::isTransmissionActive() {
     return transmissionActive;
 }
 
-SerialTransmitter::SerialTransmitter(HardwareSerial *serial, int baud) : Transmitter() {
+SerialTransmitter::SerialTransmitter(HardwareSerial *serial, unsigned long baud) : Transmitter() {
     this->baud = baud;
     this->serial = serial;
 #ifdef MASZYNADUINO_MASZYNA_UART_SYNC_BUG_WORKAROUND
@@ -41,13 +41,15 @@ void SerialTransmitter::transmit() {
         OutputFrame *outputs = Maszyna->getOutputs();
 
 #ifdef MASZYNADUINO_MASZYNA_UART_SYNC_BUG_WORKAROUND
-        this->serial->readBytes((uint8_t *) inputs, sizeof(InputFrame));
-        this->serial->write((uint8_t *) outputs, sizeof(OutputFrame));
+        if(serial->available() >= sizeof(InputFrame) || serial->availableForWrite() >= sizeof(OutputFrame)) {
+            this->serial->readBytes((uint8_t *) inputs, sizeof(InputFrame));
+            this->serial->write((uint8_t *) outputs, sizeof(OutputFrame));
+        }
 #else
         if(serial->available() >= sizeof(InputFrame)) {
             this->serial->readBytes((uint8_t *) inputs, sizeof(InputFrame));
         }
-        if(serial->availableForWrite() >= sizeof(OutputFrame)) {
+        if(serial->availableForWrite() > sizeof(OutputFrame)) {
             this->serial->write((uint8_t *) outputs, sizeof(OutputFrame));
         }
 #endif
@@ -58,7 +60,7 @@ HardwareSerial* SerialTransmitter::getSerial() {
     return serial;
 }
 
-int SerialTransmitter::getSerialBaud() {
+unsigned long SerialTransmitter::getSerialBaud() {
     return baud;
 }
 

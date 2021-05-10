@@ -76,15 +76,15 @@ class Transmitter {
 
 class SerialTransmitter : public Transmitter {
     public:
-        SerialTransmitter(HardwareSerial *serial, int baud=57600);
+        SerialTransmitter(HardwareSerial *serial, unsigned long baud=57600);
         void transmit();
         HardwareSerial *getSerial();
-        int getSerialBaud();
+        unsigned long getSerialBaud();
         void debugMonitor(HardwareSerial *);
 
     private:
         HardwareSerial *serial;
-        int baud = 19200;
+        unsigned long baud;
         uint8_t tmpBuf[100];
         bool initialized = false;
 };

@@ -2,6 +2,8 @@
 #include "mux.h"
 #include "comm.h"
 #include "debugmonitor.h"
+#include "console.h"
+
 
 
 //uint16_t _MUXDIR[MAX_MUXERS] = {MUXDIR_INPUT};
@@ -13,41 +15,71 @@ volatile uint8_t _MUX_CURRENT_CHANNEL = 0;
 Mux *_MUXERS[MAX_MUXERS] = {};
 volatile uint8_t _MUX_CURRENT = 0;
 volatile uint8_t _MUX_PREV = 0;
+volatile bool _clrq = false;
 
+Console *_CONSOLE;
+
+
+void autoupdate_console(Console *c) {
+    _CONSOLE = c;
+}
+
+void set_muxers_clrq() {
+    _clrq = true;
+}
+
+void clear_muxers_clrq() {
+    _clrq = false;
+}
+
+/*
+ISR(TIMER1_COMPA_vect) {
+    if(_CONSOLE) {
+        _CONSOLE->update();
+    }
+}
+*/
 
 ISR(TIMER2_COMPA_vect) {
-    if(_MUX_COUNT > 0) {
-        _MUXERS[_MUX_PREV]->disable();
-        Mux *mux = _MUXERS[_MUX_CURRENT];
-        mux->channel(_MUX_CURRENT_CHANNEL);
-        bool state;
+//void update_muxers() {
+        if(_MUX_COUNT > 0) {
+            _MUXERS[_MUX_PREV]->disable();
+            Mux *mux = _MUXERS[_MUX_CURRENT];
+            if(_MUX_CURRENT_CHANNEL==0 && _clrq) {
+                _MUX_STATE = 0;
+            }
+            mux->channel(_MUX_CURRENT_CHANNEL);
+            bool state;
 
-        if(mux->getChannelMode(_MUX_CURRENT_CHANNEL) == MuxChannelMode::pullup) {
-            mux->enable();
-            state = mux->readDigital();
-            mux->disable();
-        } else {
-            state = mux->getRequestedChannelState(_MUX_CURRENT_CHANNEL);
-            mux->writeDigital(state);
-            mux->enable();
-        }
-        if(state) {
-            _MUX_STATE |= (1<<_MUX_CURRENT_CHANNEL);
-        } else {
-            _MUX_STATE &= ~(1<<_MUX_CURRENT_CHANNEL);
-        }
-        _MUX_CURRENT_CHANNEL++;
-        if(_MUX_CURRENT_CHANNEL>=mux->channelsCount()) {
-            mux->setState(_MUX_STATE);
-            _MUX_CURRENT_CHANNEL = 0;
-            _MUX_STATE = 0;
-            _MUX_PREV = _MUX_CURRENT;
-            _MUX_CURRENT++;
-            if(_MUX_CURRENT == _MUX_COUNT) {
-                _MUX_CURRENT = 0;
+            if(mux->getChannelMode(_MUX_CURRENT_CHANNEL) == MuxChannelMode::pullup) {
+                mux->enable();
+                state = !mux->readDigital();
+                mux->disable();
+                _MUX_STATE |= (state<<_MUX_CURRENT_CHANNEL);
+            } else {
+                state = mux->getRequestedChannelState(_MUX_CURRENT_CHANNEL);
+                mux->writeDigital(state);
+                mux->enable();
+                if(!state) {
+                    _MUX_STATE |= (1<<_MUX_CURRENT_CHANNEL);
+                } else {
+                    _MUX_STATE &= ~(1<<_MUX_CURRENT_CHANNEL);
+                }
+            }
+            _MUX_CURRENT_CHANNEL++;
+            if(_MUX_CURRENT_CHANNEL>=mux->channelsCount()) {
+                mux->setState(~_MUX_STATE);
+                _MUX_CURRENT_CHANNEL = 0;
+                _MUX_PREV = _MUX_CURRENT;
+                _MUX_CURRENT++;
+                if(_MUX_CURRENT == _MUX_COUNT) {
+                    _MUX_CURRENT = 0;
+                    if(_clrq) {
+                        clear_muxers_clrq();
+                    }
+                }
             }
         }
-    }
 }
 
 
@@ -134,6 +166,14 @@ bool Mux::getRequestedChannelState(int channel) {
     return requestedState & (1 << channel);
 }
 
+bool Mux::clrq() {
+    return clrqEnabled;
+}
+
+void Mux::setClrq(bool state) {
+    clrqEnabled = state;
+}
+
 void Mux::requestChannelState(int channel, bool state) {
     if(state) {
         requestedState |= 1 << channel;
@@ -160,20 +200,22 @@ void Mux::initializeTimers() {
         return;
     }
 
-    cli();
-    //160000
-    TCCR2A = 0; // set entire TCCR2A register to 0
-    TCCR2B = 0; // same for TCCR2B
-    TCNT2  = 0; // initialize counter value to 0
-    // set compare match register for 160000 Hz increments
-    OCR2A = 99; // = 16000000 / (1 * 160000) - 1 (must be <256)
-    // turn on CTC mode
-    TCCR2B |= (1 << WGM21);
-    // Set CS22, CS21 and CS20 bits for 1 prescaler
-    TCCR2B |= (0 << CS22) | (0 << CS21) | (1 << CS20);
-    // enable timer compare interrupt
-    TIMSK2 |= (1 << OCIE2A);
-    sei();
+
+// TIMER 2 for interrupt frequency 1000000 Hz:
+cli(); // stop interrupts
+TCCR2A = 0; // set entire TCCR2A register to 0
+TCCR2B = 0; // same for TCCR2B
+TCNT2  = 0; // initialize counter value to 0
+// set compare match register for 1000000 Hz increments
+OCR2A = 15; // = 16000000 / (1 * 1000000) - 1 (must be <256)
+// turn on CTC mode
+TCCR2B |= (1 << WGM21);
+// Set CS22, CS21 and CS20 bits for 1 prescaler
+TCCR2B |= (0 << CS22) | (0 << CS21) | (1 << CS20);
+// enable timer compare interrupt
+TIMSK2 |= (1 << OCIE2A);
+sei(); // allow interrupts
+
 }
 
 bool Mux::timersInitialized = false;

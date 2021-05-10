@@ -51,6 +51,7 @@ enum Alert {
     alerter_sound
 };
 
+/*
 const String _UNKNOWN_ALERT = "???";
 
 const String AlertNames[] = {
@@ -95,6 +96,7 @@ const String AlertNames[] = {
     "SBA",
     "CAS",
 };
+*/
 
 
 class Indicator {

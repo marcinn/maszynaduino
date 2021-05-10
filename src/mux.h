@@ -35,9 +35,12 @@ enum MuxChannels {
 #define MUXDIR_OUTPUT 1
 
 class DebugMonitor;
-
+class Console;
 
 enum MuxChannelMode { pullup=0, output };
+void autoupdate_console(Console *);
+void set_muxers_clrq();
+void update_muxers();
 
 class Mux {
     public:
@@ -58,6 +61,8 @@ class Mux {
         void requestChannelState(int ch, bool state);
         void debugMonitor(DebugMonitor *dbg);
         uint8_t channelsCount() { return this->channels; }
+        bool clrq();
+        void setClrq(bool state=true);
 
         static void initializeTimers();
 
@@ -69,6 +74,7 @@ class Mux {
         uint32_t requestedState = 0;
         uint32_t channelDirections = 0; // bit 0: input_pullup, bit 1: output
         static bool timersInitialized;
+        bool clrqEnabled = false;
 };
 
 

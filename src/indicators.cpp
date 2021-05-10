@@ -8,11 +8,10 @@ bool Indicator::readState(MaszynaState *state) {
 }
 
 void Indicator::debugMonitor(DebugMonitor *d) {
-    d->print(AlertNames[indicatorNumber]);
     if(state) {
-        d->print(" [*]");
+        d->print("[*]");
     } else {
-        d->print(" [ ]");
+        d->print("[ ]");
     }
 }
 

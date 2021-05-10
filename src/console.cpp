@@ -1,6 +1,7 @@
 #include "Arduino.h"
 #include "console.h"
 #include "comm.h"
+#include "mux.h"
 
 
 Console::Console(Switch **switches, int switchesCount) {
@@ -25,6 +26,7 @@ void Console::setup() {
 
     /* automatically initialize timers, i.e. mux ISR */
     Mux::initializeTimers();
+    autoupdate_console(this);
 }
 
 void Console::update() {
@@ -32,6 +34,7 @@ void Console::update() {
         this->switches[i]->update();
         this->switches[i]->respond(Maszyna);
     }
+    set_muxers_clrq();
     for (int i = 0; i < this->indicatorsCount; i++) {
         this->indicators[i]->update(Maszyna);
         this->indicators[i]->respond();
