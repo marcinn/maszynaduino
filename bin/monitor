@@ -1,0 +1,574 @@
+#!/usr/bin/env python3
+
+import argparse
+import curses
+import dataclasses
+import os
+import re
+import struct
+import sys
+import time
+from typing import List
+
+import serial
+
+_UNKNOWN_ALERT = '?'
+
+IndicatorNames = [
+    "EBR",
+    "VOV",
+    "MOT",
+    _UNKNOWN_ALERT,
+    _UNKNOWN_ALERT,
+    _UNKNOWN_ALERT,
+    _UNKNOWN_ALERT,
+    _UNKNOWN_ALERT,
+    "CVR",
+    "B1",
+    "B2",
+    "B3",
+    "B4",
+    "RE",
+    "CMP",
+    "FPO",
+    "TH ",
+    "MR ",
+    "WS ",
+    _UNKNOWN_ALERT,
+    _UNKNOWN_ALERT,
+    _UNKNOWN_ALERT,
+    "CA ",
+    "SHP",
+    "MC ",
+    _UNKNOWN_ALERT,
+    "COO",
+    "GR ",
+    "MO ",
+    "LB ",
+    "CO ",
+    _UNKNOWN_ALERT,
+    _UNKNOWN_ALERT,
+    _UNKNOWN_ALERT,
+    "TC ",
+    "REB",
+    "REP",
+    "RS",
+    "SBA",
+    "CAS",
+]
+
+KNOWN_INDICATORS = list(
+    map(
+        lambda x: (x[0], x[1]),
+        filter(lambda x: not x[1] == _UNKNOWN_ALERT, enumerate(IndicatorNames))
+    )
+)
+
+
+@dataclasses.dataclass
+class Mux:
+    state: int
+    channels_dir: int
+
+
+@dataclasses.dataclass
+class Switch:
+    name: str
+    state: bool
+
+
+@dataclasses.dataclass
+class Indicator:
+    name: str
+    state: bool
+
+
+@dataclasses.dataclass
+class Console:
+    switches: List[Switch] = dataclasses.field(default_factory=list)
+    indicators: List[Indicator] = dataclasses.field(default_factory=list)
+
+
+@dataclasses.dataclass
+class MaszynaduinoState:
+    uptime: int
+    inputs: bytes
+    outputs: bytes
+    trn_flags: int
+    trn_serial_avail: int
+    mux_calc_time: int
+    muxers: List[Mux]
+    consoles: List[Console]
+    max_consoles: int
+    max_switches: int
+    max_indicators: int
+    max_muxers: int
+
+    @property
+    def synced(self):
+        return self.trn_flags & 1
+
+
+def to_binstr(x, size=32, t='1', f='0'):
+    res = []
+    s = []
+    for z in range(size):
+        i = size - z - 1
+        s.append(t if (x & (1 << i)) else f)
+        if i and i % 8 == 0:
+            res.append(''.join(s))
+            s = []
+    res.append(''.join(s))
+    return ' '.join(res)
+
+
+def bytes_as_int(x):
+    return int.from_bytes(x, 'little')
+
+
+output_def_re = re.compile(r"^\s*(\d+)\s+(\w+)\s+(\w+)\s*(\w+)?")
+
+COMMAND_NAMES = {
+    r'^linebreakerclose': 'LBR-C',
+    r'^linebreakeropen': 'LBR-O',
+    r'^battery.+': 'BAT',
+    r'^fuelpump.+': 'FUELP',
+    r'^oilpump.+': 'OILP',
+    r'^headlight[a-z]+rearleft': 'RHL-L',
+    r'^headlight[a-z]+frontleft': 'FHL-L',
+    r'^headlight[a-z]+rearright': 'RHR-L',
+    r'^headlight[a-z]+frontright': 'FHR-L',
+    r'^headlight[a-z]+rearupper': 'RHU-L',
+    r'^headlight[a-z]+frontupper': 'FHU-L',
+    r'^independentbrakebailoff': 'IBB',
+    r'^alerteracknowledge': 'CA',
+    r'^interiorlight.+': 'INT-L',
+    r'^instrumentlight.+': 'INS-L',
+    r'^look.+': 'LOOK',
+    r'^hornlow.+': 'HORN-L',
+    r'^hornhigh.+': 'HORN-H',
+}
+
+OUTPUT_NAMES = {}
+
+
+def parse_outputs_config(path):
+    global OUTPUT_NAMES
+
+    with open(path) as fh:
+        while True:
+            line = fh.readline()
+            if not line:
+                break
+            match = output_def_re.match(line)
+            if match:
+                num, mode, on, off = match.groups()
+                num = str(num)
+                inum = int(num)
+                name = f'Out #{inum:02d}'
+                for name_re, shortcut in COMMAND_NAMES.items():
+                    if re.match(name_re, on.lower().strip()):
+                        name = shortcut
+                OUTPUT_NAMES[num] = name
+
+
+def cmd_mon(s: serial.Serial):
+    s.write(b'm')
+    uptime = bytes_as_int(s.read(4))
+    trn_flags = bytes_as_int(s.read(1))
+    trn_serial_avail = bytes_as_int(s.read(1))
+    data = s.read_until(b'MUX!')
+    inputs, outputs, _ = struct.unpack('<52s20s4s', data)
+    mux_count = bytes_as_int(s.read())
+    mux_calc_time = bytes_as_int(s.read(4))
+    data = s.read_until(b'CON!')
+    max_mux = int((len(data)-4) / 8)
+    *mux_data, _ = struct.unpack(f'<{max_mux}L{max_mux}L4s', data)
+    mux_states = mux_data[:max_mux]
+    mux_dirs = mux_data[max_mux:]
+
+    muxers = []
+    for x in range(mux_count):
+        muxers.append(Mux(state=mux_states[x], channels_dir=mux_dirs[x]))
+
+    console_count = bytes_as_int(s.read())
+    max_consoles = bytes_as_int(s.read())
+    max_switches = bytes_as_int(s.read())
+    max_indicators = bytes_as_int(s.read())
+
+    switches_count = list(s.read(max_consoles))
+    switches_config = list(s.read(max_consoles*max_switches))
+    switches_state = list(s.read(max_consoles*max_switches))
+    ind_count = list(s.read(max_consoles))
+    ind_config = list(s.read(max_consoles*max_indicators))
+    ind_state = list(s.read(max_consoles*max_indicators))
+
+    consoles = []
+    for i in range(console_count):
+        switches = []
+        indicators = []
+        for j in range(switches_count[i]):
+            output_number = switches_config[i*max_switches+j]
+            state = switches_state[i*max_switches+j]
+            output_name = OUTPUT_NAMES.get(
+                str(output_number),
+                f'Output #{output_number:02d}'
+            )
+            switches.append(
+                Switch(name=output_name, state=state)
+            )
+        for j in range(ind_count[i]):
+            ind_number = ind_config[i*max_indicators+j]
+            state = ind_state[i*max_indicators+j]
+            try:
+                ind_name = IndicatorNames[ind_number]
+            except IndexError:
+                ind_name = f'Ind({ind_number})'
+            indicators.append(Indicator(name=ind_name, state=state))
+        consoles.append(Console(switches=switches, indicators=indicators))
+
+    s.read_until(b'EON!')
+
+    return MaszynaduinoState(
+        trn_flags=trn_flags,
+        trn_serial_avail=trn_serial_avail,
+        uptime=uptime,
+        inputs=inputs,
+        outputs=outputs,
+        muxers=muxers,
+        consoles=consoles,
+        max_muxers=max_mux,
+        max_consoles=max_consoles,
+        max_switches=max_switches,
+        max_indicators=max_indicators,
+        mux_calc_time=mux_calc_time,
+    )
+
+
+def main(scr, args):
+    error = None
+
+    serial_port = args.serial
+    serial_baud = args.baud
+
+    parse_outputs_config(
+        '/home/marcin/.wine/drive_c/Program Files (x86)/MaSzyna2020/eu07_input-uart.ini'
+    )
+
+    try:
+        port = serial.Serial(serial_port, serial_baud, timeout=0.5)
+    except serial.SerialException as ex:
+        port = None
+        error = str(ex)
+
+    w, h = os.get_terminal_size()
+
+    scr = curses.initscr()
+    curses.noecho()
+    curses.cbreak()
+    curses.curs_set(0)
+    scr.keypad(True)
+    curses.init_pair(1, curses.COLOR_RED, curses.COLOR_WHITE)
+    curses.init_pair(2, curses.COLOR_GREEN, curses.COLOR_WHITE)
+    curses.init_pair(3, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+
+    win = curses.newwin(curses.LINES-1, curses.COLS-1, 0, 0)
+    trnwin = curses.newwin(7, curses.COLS-3, 4, 1)
+    muxwin = curses.newwin(7, curses.COLS-3, 11, 1)
+    errwin = curses.newwin(3, curses.COLS-3, curses.LINES-5, 1)
+    cwin = curses.newwin(8, int(curses.COLS/2)-1, 18, 1)
+
+    twin = curses.newwin(7, 1, 18, 1)
+
+    def init_screen():
+        scr.erase()
+        scr.nodelay(True)
+        win.erase()
+        muxwin.erase()
+        trnwin.erase()
+        errwin.erase()
+        cwin.erase()
+        twin.erase()
+        win.resize(curses.LINES-1, curses.COLS-1)
+        trnwin.resize(7, curses.COLS-3)
+        muxwin.resize(10, curses.COLS-3)
+        if curses.COLS > 180:
+            twin_w = int(curses.COLS/2)-2
+            twin_h = 9
+            twin_x = int(curses.COLS/2)
+            twin_y = 18
+        else:
+            twin_w = curses.COLS-3
+            twin_x = 1
+            twin_h = 8
+            twin_y = 25
+        cwin.resize(twin_h, twin_w)
+        twin.resize(twin_h, twin_w)
+        twin.mvwin(twin_y, twin_x)
+        scr.clear()
+        win.box()
+        # muxwin.box()
+        muxwin.hline(0, 0, curses.ACS_HLINE, curses.COLS-3)
+        trnwin.hline(0, 0, curses.ACS_HLINE, curses.COLS-3)
+        cwin.hline(0, 0, curses.ACS_HLINE, curses.COLS-3)
+        twin.hline(0, 0, curses.ACS_HLINE, curses.COLS-3)
+        muxwin.addstr(0, 2, '[ Multiplexers ]', curses.A_DIM | curses.A_BOLD)
+        muxwin.addstr(
+            2, 2, 'M\\CH   31....24 23....16 15.....8 7......0', curses.A_DIM
+        )
+        if curses.COLS-3 > 180:
+            muxwin.addstr(
+                2, 92,
+                'M\\CH   31....24 23....16 15.....8 7......0',
+                curses.A_DIM
+            )
+
+        trnwin.addstr(
+            0, 2, '[ Data Transmission ]', curses.A_DIM | curses.A_BOLD
+        )
+        trnwin.addstr(2, 4, 'RX: ')
+        trnwin.addstr(5, 4, 'TX: ')
+        cwin.addstr(
+            0, 2, '[ Console #  ]', curses.A_DIM | curses.A_BOLD
+        )
+        twin.addstr(
+            0, 2, '[ Simulation ]', curses.A_DIM | curses.A_BOLD
+        )
+        scr.refresh()
+        win.refresh()
+        trnwin.refresh()
+        muxwin.refresh()
+        errwin.refresh()
+        cwin.refresh()
+        twin.refresh()
+        scr.addstr(0, 1, ' Maszynaduino Monitor ', curses.A_BOLD)
+        scr.refresh()
+
+    init_screen()
+
+    CURRENT_CONSOLE = 0
+    while True:
+        state = None
+
+        if port:
+            try:
+                if not port.is_open:
+                    port.open()
+                state = cmd_mon(port)
+            except Exception as ex:
+                error = str(ex)
+                try:
+                    port.close()
+                except Exception:
+                    port = None
+            else:
+                if error:
+                    error = None
+                    init_screen()
+        else:
+            try:
+                port = serial.Serial(serial_port, serial_baud, timeout=0.1)
+            except serial.SerialException as ex:
+                error = str(ex)
+            else:
+                if error:
+                    error = None
+                    init_screen()
+
+        if error:
+            win.addstr(
+                0, 30,
+                ' No connection or data error ', (
+                    curses.A_BLINK | curses.A_STANDOUT |
+                    curses.color_pair(1) | curses.A_BOLD
+                )
+            )
+            errwin.addstr(0, 0, error, curses.color_pair(1))
+            errwin.refresh()
+            win.refresh()
+            time.sleep(0.25)
+            continue
+        else:
+            win.addstr(
+                0, 30,
+                ' Connected ',
+                curses.A_STANDOUT | curses.color_pair(2)
+            )
+
+        if not state:
+            continue
+
+        minutes, seconds = divmod(int(state.uptime/1000), 60)
+        txt = f' Uptime: {minutes:02d}m:{seconds:02d}s '
+        h, w = win.getmaxyx()
+        win.addstr(0, w-len(txt)-2, txt)
+        win.addstr(
+            2, 3,
+            f'Consoles: {len(state.consoles)}/{state.max_consoles}   '
+            f'Muxers: {len(state.muxers)}/{state.max_muxers}   '
+            f'Max switches: {state.max_switches}   '
+            f'Max indicators: {state.max_indicators}'
+        )
+
+        mct = f' Mux time: {state.mux_calc_time: 4d}µs '
+        h, w = muxwin.getmaxyx()
+        muxwin.addstr(0, w-3-len(mct), mct)
+        mx = 3
+        my = 3
+        half_muxers = int(len(state.muxers)/2)+1
+        split = w > 180
+        for i, mux in enumerate(state.muxers):
+            mux_s = (
+                f'#{i+1}: S={to_binstr(mux.state)}  '
+                f'D={to_binstr(mux.channels_dir)}'
+            )
+            if (split and i == half_muxers):
+                mx += 90
+                my = 3
+            muxwin.addstr(my, mx, mux_s)
+            my += 1
+
+        inputs = list(map(lambda x: '{:02x}'.format(x), state.inputs))
+        inputs_half = int(len(inputs)/2)
+        outputs = list(map(lambda x: '{:02x}'.format(x), state.outputs))
+
+        trnwin.addstr(
+            0, curses.COLS-3-6, ' SYNC ',
+            curses.A_STANDOUT | curses.color_pair(2 if state.synced else 1)
+        )
+
+        trnwin.addstr(
+            0, curses.COLS-3-20, f' InBuf: {state.trn_serial_avail:03d} ',
+            curses.A_DIM
+        )
+
+        trnwin.addstr(2, 8, ' '.join(inputs[:inputs_half]))
+        trnwin.addstr(3, 8, ' '.join(inputs[inputs_half:]))
+        trnwin.addstr(5, 8, ' '.join(outputs))
+
+        cy = 2
+        cx = 8
+        h, w = cwin.getmaxyx()
+        w_max = w - 3
+
+        console = state.consoles[CURRENT_CONSOLE]
+        cwin.addstr(0, 13, str(CURRENT_CONSOLE), curses.A_DIM | curses.A_BOLD)
+        cwin.addstr(0, 20, f' Ind: {len(console.indicators)} ')
+        cwin.addstr(0, 30, f' Sw: {len(console.switches)} ')
+
+        for ind in console.indicators:
+            cwin.addstr(
+                cy, cx,
+                f' {ind.name} ',
+                curses.A_STANDOUT | (curses.color_pair(1) if ind.state else curses.A_DIM)
+            )
+            cx += 7
+            if cx + 7 + 3 > w_max:
+                cx = 8
+                cy += 1
+
+        cx = 8
+        cy += 2
+        for sw in console.switches:
+            cwin.addstr(
+                cy, cx,
+                f'{sw.name} ',
+                (curses.A_STANDOUT | curses.color_pair(2)) if sw.state else curses.A_DIM
+            )
+            cx += 8
+            if cx + 8 + 3 > w_max:
+                cx = 8
+                cy += 1
+
+        cx = 3
+        cy = 2
+        for nr, name in KNOWN_INDICATORS:
+            byte, bit = divmod(nr, 8)
+            is_on = state.inputs[6+byte] & (1 << bit)
+            twin.addstr(
+                cy, cx, f' {name:<4} ',
+                (curses.A_STANDOUT | curses.color_pair(3) if is_on else curses.A_DIM)
+            )
+            cx += 7
+            if cx + 7 + 3 > w_max:
+                cx = 3
+                cy += 1
+
+        cy += 2
+        cx = 3
+
+        th, tw = twin.getmaxyx()
+        spd = bytes_as_int(struct.unpack('<2B', state.inputs[4:6]))
+        bp = bytes_as_int(struct.unpack('<BB', state.inputs[11:13]))
+        pp = bytes_as_int(struct.unpack('<2B', state.inputs[13:15]))
+        tp = bytes_as_int(struct.unpack('<2B', state.inputs[15:17]))
+        odo = bytes_as_int(struct.unpack('<4B', state.inputs[31:35]))
+        rch = bytes_as_int(struct.unpack('<1B', state.inputs[37:38]))
+        ym = bytes_as_int(struct.unpack('<2B', state.inputs[25:27]))
+        dhm = bytes_as_int(struct.unpack('<2B', state.inputs[27:29]))
+        sec = bytes_as_int(struct.unpack('<2B', state.inputs[29:31]))
+        hvv = bytes_as_int(struct.unpack('<2B', state.inputs[17:19]))
+        vc1 = bytes_as_int(struct.unpack('<2B', state.inputs[21:23]))
+        vc2 = bytes_as_int(struct.unpack('<2B', state.inputs[23:25]))
+        vc3 = bytes_as_int(struct.unpack('<2B', state.inputs[25:27]))
+        lv = bytes_as_int(struct.unpack('<2B', state.inputs[35:37]))
+        logistics = [
+            ('SPD', spd, 8),
+            ('ODO', odo, 8),
+            ('RCH', rch, 2),
+            ('BRK', bp, 8),
+            ('PIP', pp, 8),
+            ('TNK', tp, 8),
+            (' HV', hvv, 8),
+            ('HC1', vc1, 8),
+            ('HC2', vc2, 8),
+            ('HC3', vc3, 8),
+            (' LV', lv, 8),
+        ]
+
+        day, minutes = divmod(dhm, 1440)
+        hour, minute = divmod(minutes, 60)
+        year, month = divmod(ym, 12)
+        year += 1
+        month += 1
+        day += 1
+        second = int(sec / 1000)
+        twin.addstr(
+            0, tw-3-19,
+            f' {year:02d}/{month:02d}/{day:02d}'
+            f' {hour:02d}:{minute:02d}:{second:02d} ',
+            curses.A_DIM
+        )
+
+        for label, value, fmt in logistics:
+            twin.addstr(cy, cx, f'{label}: {value:<{fmt}}')
+            cx += 16
+            if cx + 16 + 3 > tw:
+                cx = 3
+                cy += 1
+
+        win.refresh()
+        muxwin.refresh()
+        trnwin.refresh()
+        cwin.refresh()
+        twin.refresh()
+        curses.update_lines_cols()
+        if scr.getch() == curses.KEY_RESIZE:
+            init_screen()
+    time.sleep(0.25)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Maszynaduino")
+    parser.add_argument("serial", type=str)
+    parser.add_argument("--baud", default=57600, action="store")
+    args = parser.parse_args()
+
+    try:
+        curses.wrapper(main, args)
+    except curses.error:
+        curses.endwin()
+        print("Terminal window is too small")
+    except Exception:
+        curses.endwin()
+        raise

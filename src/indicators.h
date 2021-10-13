@@ -4,12 +4,13 @@
 #include "Arduino.h"
 #include "comm.h"
 #include "mux.h"
+#include "outputs.h"
 
 class DebugMonitor;
 
 
-enum Alert {
-    _ind0 = 0,              // indicator0
+enum class Alert {
+    epbrake_enabled = 0,              // indicator0
     ventilator_overload,
     motor_overload_threshold,
     _ind3,
@@ -18,13 +19,13 @@ enum Alert {
     _ind6,
     _ind7,
     coupled_hv_voltage_relays, // indicator1
-    _ind9,
-    _ind10,
-    _ind11,
-    _ind12,
-    _ind13,
-    _ind14,
-    _ind15,
+    boczniki1,
+    boczniki2,
+    boczniki3,
+    boczniki4,
+    radio_enabled,
+    compressor_enabled,
+    fuel_pump_off,
     train_heating,            // indicator2
     motor_resistors,
     wheel_slip,
@@ -33,12 +34,12 @@ enum Alert {
     _ind21,
     alerter,
     shp,
-    motor_connectors,        // indicator3
+    motor_connectors,        // indicator3; otwarte styczniki liniowe
     _ind25,
     converter_overload,
     ground_relay,
     motor_overload,
-    line_breaker,
+    line_breaker,       // wylacznik szybki
     compressor_overload,
     _ind31,
     _ind32,
@@ -48,90 +49,29 @@ enum Alert {
     recorder_power,
     radio_stop,
     springbrake_active,
-    alerter_sound
+    alerter_sound,
+    UNUSED = -1
 };
-
-/*
-const String _UNKNOWN_ALERT = "???";
-
-const String AlertNames[] = {
-    _UNKNOWN_ALERT,
-    "VOV",
-    "MOT",
-    _UNKNOWN_ALERT,
-    _UNKNOWN_ALERT,
-    _UNKNOWN_ALERT,
-    _UNKNOWN_ALERT,
-    _UNKNOWN_ALERT,
-    "CVR",
-    _UNKNOWN_ALERT,
-    _UNKNOWN_ALERT,
-    _UNKNOWN_ALERT,
-    _UNKNOWN_ALERT,
-    _UNKNOWN_ALERT,
-    _UNKNOWN_ALERT,
-    _UNKNOWN_ALERT,
-    "TH ",
-    "MR ",
-    "WS ",
-    _UNKNOWN_ALERT,
-    _UNKNOWN_ALERT,
-    _UNKNOWN_ALERT,
-    "CA ",
-    "SHP",
-    "MC ",
-    _UNKNOWN_ALERT,
-    "COO",
-    "GR ",
-    "MO ",
-    "LB ",
-    "CO ",
-    _UNKNOWN_ALERT,
-    _UNKNOWN_ALERT,
-    _UNKNOWN_ALERT,
-    "TC ",
-    "REB",
-    "REP",
-    "RS",
-    "SBA",
-    "CAS",
-};
-*/
 
 
 class Indicator {
     public:
+        Indicator(IOutput *output, int pin, Alert indicatorNumber);
         void update(MaszynaState *state);
-        virtual void setup();
-        virtual void respond();
-        void debugMonitor(DebugMonitor *);
+        void setup();
+        void reset();
+        void respond();
+        Alert getAlert();
+        uint8_t getAlertNumber();
+        bool getState();
 
     protected:
-        virtual bool readState(MaszynaState *state);
-        int indicatorNumber;
+        bool readState(MaszynaState *state);
+        Alert alert;
         bool state = false;
         bool invert = false;
-};
-
-
-class PinIndicator : public Indicator {
-    public:
-        PinIndicator(int pin, int indicatorNumber);
-        virtual void setup();
-        virtual void respond();
-    private:
         int pin;
-};
-
-
-class MuxIndicator : public Indicator {
-    public:
-        MuxIndicator(Mux *mux, int channel, int indicatorNumber);
-        virtual void setup();
-        virtual void respond();
-    private:
-        Mux *mux;
-        int channel;
+        IOutput *output;
 };
 
 #endif

@@ -1,49 +1,41 @@
 #include "Arduino.h"
 #include "indicators.h"
 #include "comm.h"
-#include "debugmonitor.h"
 
-bool Indicator::readState(MaszynaState *state) {
-    return state->getIndicatorState(indicatorNumber);
+Indicator::Indicator(IOutput *output, int pin, Alert indicatorNumber) {
+    this->output = output;
+    this->pin = pin;
+    this->alert = indicatorNumber;
 }
 
-void Indicator::debugMonitor(DebugMonitor *d) {
-    if(state) {
-        d->print("[*]");
-    } else {
-        d->print("[ ]");
-    }
+void Indicator::setup() {
+    output->setup(pin);
+}
+
+bool Indicator::readState(MaszynaState *state) {
+    return state->getIndicatorState(alert);
+}
+
+uint8_t Indicator::getAlertNumber() {
+    return static_cast<int>(alert);
+}
+
+bool Indicator::getState() {
+    return state;
 }
 
 void Indicator::update(MaszynaState *state) {
     this->state = this->readState(state);
 }
 
-PinIndicator::PinIndicator(int pin, int indicatorNumber) {
-    this->indicatorNumber = indicatorNumber;
-    this->pin = pin;
+void Indicator::respond() {
+    output->write(pin, state ? HIGH : LOW);
 }
 
-void PinIndicator::setup() {
-    pinMode(this->pin, OUTPUT);
-    digitalWrite(this->pin, LOW);
+void Indicator::reset() {
+    state = LOW;
 }
 
-void PinIndicator::respond() {
-    digitalWrite(pin, state ? HIGH : LOW);
-}
-
-
-MuxIndicator::MuxIndicator(Mux *mux, int channel, int indicatorNumber) {
-    this->indicatorNumber = indicatorNumber;
-    this->mux = mux;
-    this->channel = channel;
-    mux->setChannelMode(channel, MuxChannelMode::output);
-}
-
-void MuxIndicator::setup() {
-}
-
-void MuxIndicator::respond() {
-    mux->requestChannelState(channel, state);
+Alert Indicator::getAlert() {
+    return alert;
 }

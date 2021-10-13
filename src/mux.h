@@ -26,7 +26,7 @@
 #define MUX_CH15 15
 #define MUX_CH16 16
 
-enum MuxChannels {
+enum class MuxChannels {
     CH0=0, CH1, CH2, CH3, CH4, CH5, CH6, CH7, CH8,
     CH9, CH10, CH11, CH12, CH13, CH14, CH15, CH16
 };
@@ -34,12 +34,10 @@ enum MuxChannels {
 #define MUXDIR_INPUT 0
 #define MUXDIR_OUTPUT 1
 
-class DebugMonitor;
+class DebugFrame;
 class Console;
 
-enum MuxChannelMode { pullup=0, output };
-void autoupdate_console(Console *);
-void set_muxers_clrq();
+enum class MuxChannelMode { pullup=0, output };
 void update_muxers();
 
 class Mux {
@@ -56,15 +54,12 @@ class Mux {
         void setState(uint32_t state);
         MuxChannelMode getChannelMode(int ch);
         uint32_t getState();
+        uint32_t getDirections();
         bool getChannelState(int ch);
         bool getRequestedChannelState(int ch);
         void requestChannelState(int ch, bool state);
-        void debugMonitor(DebugMonitor *dbg);
+        void debug(DebugFrame *d);
         uint8_t channelsCount() { return this->channels; }
-        bool clrq();
-        void setClrq(bool state=true);
-
-        static void initializeTimers();
 
     private:
         int pinS0, pinS1, pinS2, pinS3;
@@ -73,8 +68,6 @@ class Mux {
         uint32_t state = 0;
         uint32_t requestedState = 0;
         uint32_t channelDirections = 0; // bit 0: input_pullup, bit 1: output
-        static bool timersInitialized;
-        bool clrqEnabled = false;
 };
 
 

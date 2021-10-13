@@ -9,7 +9,7 @@
 class Console;
 class DebugMonitor;
 
-enum SwitchMode { NORMAL=0, INVERT };
+enum class SwitchMode { NORMAL=0, INVERT };
 
 
 class Switch {
@@ -17,10 +17,11 @@ class Switch {
     virtual void setup();
     void update();
     void respond(MaszynaState *state);
+    virtual void onChange();
     bool getState();
     bool isOn();
     bool isOff();
-    void debugMonitor(DebugMonitor *d);
+    int getOutputNumber();
   protected:
     int mode;
     int outputNum;

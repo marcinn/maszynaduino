@@ -11,11 +11,11 @@
 #endif
 
 #ifndef CONSOLE_MAX_SWITCHES
-#define CONSOLE_MAX_SWITCHES 100
+#define CONSOLE_MAX_SWITCHES 40
 #endif
 
 #ifndef CONSOLE_MAX_INDICATORS
-#define CONSOLE_MAX_INDICATORS 100
+#define CONSOLE_MAX_INDICATORS 40
 #endif
 
 
@@ -32,11 +32,14 @@ class Console {
     int getIndicatorsCount();
     Indicator *getIndicator(int num);
     Switch *getSwitch(int num);
+    void turnOffIndicators();
   private:
     int switchesCount = 0;
     int indicatorsCount = 0;
     Switch *switches[CONSOLE_MAX_SWITCHES]; // bufor
     Indicator *indicators[CONSOLE_MAX_INDICATORS]; // bufor
+    unsigned long lastUpdate = 0;
+    bool initialized = false;
 };
 
 #endif

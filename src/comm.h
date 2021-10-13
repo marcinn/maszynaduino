@@ -3,7 +3,9 @@
 
 #include "Arduino.h"
 
-#define MASZYNADUINO_MASZYNA_UART_SYNC_BUG_WORKAROUND
+enum class Alert;
+
+//#define MASZYNADUINO_MASZYNA_UART_SYNC_BUG_WORKAROUND
 
 struct __attribute__((packed))  InputFrame {         // bajt
     uint8_t preamble[4];       // 0-3
@@ -45,16 +47,24 @@ struct __attribute__((packed))  OutputFrame {
 };
 
 
+const int INPUTS_SIZE = sizeof(InputFrame);
+const int OUTPUTS_SIZE = sizeof(OutputFrame);
+
 class MaszynaState {
     public:
         InputFrame* getInputs();
         OutputFrame* getOutputs();
         void setInputs(InputFrame *);
-        bool getIndicatorState(int indicatorNumber);
+        bool getIndicatorState(Alert indicatorNumber);
         void setOutputBit(uint8_t num, uint8_t bitNum, bool state);
         void setOutputSwitch(uint8_t num, bool state);
+        void setIndicatorState(Alert indicatorNum, bool state);
+        bool getOutputSwitch(uint8_t num);
+		unsigned long getMuxCalcTime();
+		void setMuxCalcTime(unsigned long t);
 
     private:
+		unsigned long muxCalcTime  = 0;
         InputFrame input = {{0}, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, {0}};
         OutputFrame output = {{0xEF, 0xEF, 0xEF, 0xEF}, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, {0}};
 };
@@ -64,9 +74,9 @@ class Transmitter {
     public:
         Transmitter();
         virtual void transmit();
-        virtual void debugMonitor(HardwareSerial *);
         bool isTransmissionActive();
         bool isTransmissionStarted();
+		bool synced = false;
         MaszynaState *getState();
     protected:
         MaszynaState *state;
@@ -80,13 +90,18 @@ class SerialTransmitter : public Transmitter {
         void transmit();
         HardwareSerial *getSerial();
         unsigned long getSerialBaud();
-        void debugMonitor(HardwareSerial *);
 
     private:
         HardwareSerial *serial;
         unsigned long baud;
-        uint8_t tmpBuf[100];
+        InputFrame tmpBuf = {0};
         bool initialized = false;
+        unsigned long lastSend = 0;
+        unsigned long lastRead = 0;
+        unsigned long lastUpdate = 0;
+        unsigned long lastTransmission = 0;
+        byte syncstep = 0;
+        bool skipPreamble = false;
 };
 
 extern MaszynaState *Maszyna;

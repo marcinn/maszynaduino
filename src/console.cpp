@@ -23,18 +23,21 @@ void Console::setup() {
     for (int i = 0; i < this->indicatorsCount; i++) {
         this->indicators[i]->setup();
     }
-
-    /* automatically initialize timers, i.e. mux ISR */
-    Mux::initializeTimers();
-    autoupdate_console(this);
+    initialized = true;
 }
 
 void Console::update() {
+    if(!initialized) {
+        this->setup();
+    }
+    if ((millis() - lastUpdate) < 50) {
+        return;
+    }
+    lastUpdate = millis();
     for (int i = 0; i < this->switchesCount; i++) {
         this->switches[i]->update();
         this->switches[i]->respond(Maszyna);
     }
-    set_muxers_clrq();
     for (int i = 0; i < this->indicatorsCount; i++) {
         this->indicators[i]->update(Maszyna);
         this->indicators[i]->respond();
@@ -72,5 +75,13 @@ Switch *Console::getSwitch(int num) {
         return this->switches[num];
     } else {
         return nullptr;
+    }
+}
+
+void Console::turnOffIndicators() {
+    for (int i = 0; i < this->indicatorsCount; i++) {
+        Maszyna->setIndicatorState(this->indicators[i]->getAlert(), false);
+        this->indicators[i]->reset();
+        this->indicators[i]->respond();
     }
 }

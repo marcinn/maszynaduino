@@ -6,55 +6,52 @@
 #include "console.h"
 #include "comm.h"
 
-/*
-#define DF_TR_ACTIVE 1
+
+#define DEBUG_CMDBUFSIZE  5
+
 
 struct __attribute__((packed))  DebugFrame {
-    char preamble[4] = "MAS!";
-    uint8_t tr_flags;
-    uint8_t tr_inbuf;
-    uint8_t tr_writebuf;
+    uint32_t uptime;
+	uint8_t trn_flags;
+    uint8_t trn_serial_avail = 0;
     InputFrame tr_rx;
     OutputFrame tr_tx;
+    char muxterminator[4] = {'M', 'U', 'X', '!'};
     uint8_t mux_count;
-    uint8_t mux_max = MAX_MUXERS;
+	uint32_t mux_calc_time = 0;
     uint32_t mux_state[MAX_MUXERS];
     uint32_t mux_dir[MAX_MUXERS];
-    uint8_t con_count;
-    uint8_t con_max = MAX_CONSOLES;
+    char consoleterminator[4] = {'C', 'O', 'N', '!'};
+    uint8_t console_count;
+    uint8_t max_consoles = MAX_CONSOLES;
+    uint8_t max_switches = CONSOLE_MAX_SWITCHES;
+    uint8_t max_indicators = CONSOLE_MAX_INDICATORS;
+    uint8_t console_switches_count[MAX_CONSOLES];
+    uint8_t console_switches[MAX_CONSOLES][CONSOLE_MAX_SWITCHES];
+    uint8_t console_switches_state[MAX_CONSOLES][CONSOLE_MAX_SWITCHES];
+    uint8_t console_indicators_count[MAX_CONSOLES];
+    uint8_t console_indicators[MAX_CONSOLES][CONSOLE_MAX_INDICATORS];
+    uint8_t console_indicators_state[MAX_CONSOLES][CONSOLE_MAX_INDICATORS];
+    char terminator[4] = {'E', 'O', 'N', '!'};
+};
 
-}
-*/
 
 class DebugMonitor {
     public:
-        DebugMonitor(HardwareSerial *debugSerial, Transmitter *transmitter, Console *console);
+        DebugMonitor(HardwareSerial *debugSerial, SerialTransmitter *transmitter, Console *console, unsigned long baud = 115200);
         void setup();
         void update();
         void transmit();
-        void clearScreen();
-        bool isDataChanged();
         //void addConsole(Console *);
-        void log(const String &);
-        void print(const String &);
-        void print(int, int mode=DEC);
-        void println(int, int mode=DEC);
-        void print(bool, int mode=DEC);
-        void println(bool, int mode=DEC);
-        void println(const String &);
-        void print(const char s[]);
-        void println(const char s[]);
-        void print(char s);
-        void println(char s);
-        void println();
-        void printBits(uint32_t n, int numBits);
     private:
+        unsigned long baud;
         HardwareSerial *serial;
         Console *console;
-        Transmitter *transmitter;
+        SerialTransmitter *transmitter;
         InputFrame previousInput;
         OutputFrame previousOutput;
         unsigned long timeCounter = 0;
+        bool initialized = false;
 };
 
 #endif

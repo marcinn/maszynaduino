@@ -5,11 +5,12 @@
 #define ARRAY_LENGTH(x) (sizeof (x) / sizeof (x[0]))
 #endif
 
-#include "mux.h"
 #include "debugmonitor.h"
+#include "mux.h"
 #include "console.h"
 #include "switches.h"
 #include "indicators.h"
+#include "outputs.h"
 #include "comm.h"
 #include "version.h"
 
