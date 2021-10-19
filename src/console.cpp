@@ -1,56 +1,47 @@
 #include "Arduino.h"
 #include "console.h"
+#include "comm.h"
+#include "mux.h"
 
 
-Console::Console(HardwareSerial *serial) {
-    this->serial = serial;
-}
-
-Console::Console(HardwareSerial *serial, Switch **switches, int switchesCount) {
-    this->serial = serial;
-
+Console::Console(Switch **switches, int switchesCount) {
     for (int i = 0; i < switchesCount; i++) {
         this->addSwitch(switches[i]);
     }
 }
 
-Console::Console(HardwareSerial *serial, Switch **switches, int switchesCount, Indicator **indicators, int indicatorsCount) : Console(serial, switches, switchesCount) {
+Console::Console(Switch **switches, int switchesCount, Indicator **indicators, int indicatorsCount) : Console(switches, switchesCount) {
     for (int i=0; i<indicatorsCount; i++) {
         this->addIndicator(indicators[i]);
     }
 }
 
 void Console::setup() {
-    this->serial->begin(57600);
-
     for (int i = 0; i < this->switchesCount; i++) {
         this->switches[i]->setup();
     }
     for (int i = 0; i < this->indicatorsCount; i++) {
         this->indicators[i]->setup();
     }
-    while (!this->serial) {}
+    initialized = true;
 }
+
 void Console::update() {
+    if(!initialized) {
+        this->setup();
+    }
+    if ((millis() - lastUpdate) < 50) {
+        return;
+    }
+    lastUpdate = millis();
     for (int i = 0; i < this->switchesCount; i++) {
         this->switches[i]->update();
-        this->switches[i]->updateOutputs((byte *) &this->output);
+        this->switches[i]->respond(Maszyna);
     }
     for (int i = 0; i < this->indicatorsCount; i++) {
-        this->indicators[i]->update(&this->input);
+        this->indicators[i]->update(Maszyna);
         this->indicators[i]->respond();
     }
-}
-void Console::transmit() {
-    this->serial->readBytes((byte *) &this->input, sizeof(this->input));
-    this->serial->write((byte *) &this->output, sizeof(this->output));
-    this->serial->flush();
-}
-InputFrame* Console::getInputs() {
-    return &this->input;
-}
-OutputFrame* Console::getOutputs() {
-    return &this->output;
 }
 
 void Console::addSwitch(Switch *_switch) {
@@ -69,4 +60,28 @@ int Console::getSwitchesCount() {
 
 int Console::getIndicatorsCount() {
     return this->indicatorsCount;
+}
+
+Indicator *Console::getIndicator(int num) {
+    if(num<indicatorsCount) {
+        return this->indicators[num];
+    } else {
+        return nullptr;
+    }
+}
+
+Switch *Console::getSwitch(int num) {
+    if(num<switchesCount) {
+        return this->switches[num];
+    } else {
+        return nullptr;
+    }
+}
+
+void Console::turnOffIndicators() {
+    for (int i = 0; i < this->indicatorsCount; i++) {
+        Maszyna->setIndicatorState(this->indicators[i]->getAlert(), false);
+        this->indicators[i]->reset();
+        this->indicators[i]->respond();
+    }
 }

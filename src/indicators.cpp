@@ -1,26 +1,41 @@
 #include "Arduino.h"
 #include "indicators.h"
+#include "comm.h"
 
-
-bool Indicator::readState(InputFrame *inputs) {
-    return ((uint8_t *) inputs)[this->frame+4] & (1 << this->bitNum);
-}
-
-void Indicator::update(InputFrame *inputs) {
-    this->state = this->readState(inputs);
-}
-
-PinIndicator::PinIndicator(int pin, int frame, int bitNum) {
-    this->frame = frame;
-    this->bitNum = bitNum;
+Indicator::Indicator(IOutput *output, int pin, Alert indicatorNumber) {
+    this->output = output;
     this->pin = pin;
+    this->alert = indicatorNumber;
 }
 
-void PinIndicator::setup() {
-    pinMode(this->pin, OUTPUT);
-    digitalWrite(this->pin, LOW);
+void Indicator::setup() {
+    output->setup(pin);
 }
 
-void PinIndicator::respond() {
-    digitalWrite(this->pin, this->state ? HIGH : LOW);
+bool Indicator::readState(MaszynaState *state) {
+    return state->getIndicatorState(alert);
+}
+
+uint8_t Indicator::getAlertNumber() {
+    return static_cast<int>(alert);
+}
+
+bool Indicator::getState() {
+    return state;
+}
+
+void Indicator::update(MaszynaState *state) {
+    this->state = this->readState(state);
+}
+
+void Indicator::respond() {
+    output->write(pin, state ? HIGH : LOW);
+}
+
+void Indicator::reset() {
+    state = LOW;
+}
+
+Alert Indicator::getAlert() {
+    return alert;
 }

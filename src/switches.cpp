@@ -1,80 +1,81 @@
 #include "Arduino.h"
 #include "switches.h"
-
-void Switch::updateOutputs(byte outputs[]) {
-
-    if ((this->mode == INPUT_PULLUP && this->state) || (this->mode == LOW && this->state)) {
-        outputs[this->frame + 4] |= 1 << this->bitNum;
-    }
-    else {
-        outputs[this->frame + 4] &= ~(1 << this->bitNum);
-    }
-};
-
+#include "console.h"
 
 void Switch::update() {
-    bool value = this->probe();
-    this->state = this->invert == (SwitchMode::INVERT ? value : !value);
+    bool value = probe();
+    bool changed = false;
+    value = (invert ? !value : value);
+    value = (mode == INPUT_PULLUP ? !value : value);
+    changed = !(state == value);
+    this->state = value;
+    if(changed) {
+        onChange();
+    }
+}
+
+void Switch::onChange() {}
+
+int Switch::getOutputNumber() {
+    return outputNum;
+}
+
+void Switch::respond(MaszynaState *state) {
+    state->setOutputSwitch(outputNum, this->state);
 }
 
 bool Switch::getState() {
-    return this->state;
+    return state;
 }
 
 bool Switch::isOn() {
-    return this->state;
+    return state;
 }
 
 bool Switch::isOff() {
-    return !this->state;
+    return !state;
 }
 
 /* Pin Switch */
 
-PinSwitch::PinSwitch(int pin, int frame, int bitNum, int mode, SwitchMode invert) {
+PinSwitch::PinSwitch(int pin, int outputNum, int mode, SwitchMode invert) {
     this->pin = pin;
-    this->frame = frame;
-    this->bitNum = bitNum;
+    this->outputNum = outputNum;
     this->mode = mode;
-    this->invert = invert;
+    this->invert = invert == SwitchMode::NORMAL ? false : true;
 };
 
-PinSwitch::PinSwitch(int pin, int frame, int bitNum) : PinSwitch::PinSwitch(pin, frame, bitNum, INPUT_PULLUP, SwitchMode::NORMAL) {
+PinSwitch::PinSwitch(int pin, int outputNum, SwitchMode mode)
+    : PinSwitch::PinSwitch(pin, outputNum, INPUT_PULLUP, mode) {
 };
 
 void PinSwitch::setup() {
-    pinMode(this->pin, INPUT);
-    digitalWrite(this->pin, mode);
-    this->update();
+    pinMode(pin, mode);
+    digitalWrite(pin, mode == INPUT_PULLUP ? HIGH : LOW);
+    update();
 }
 
 bool PinSwitch::probe() {
-    return digitalRead(this->pin);
+    return digitalRead(pin);
 };
 
 
 /* MuxSwitch */
 
-MuxSwitch::MuxSwitch(Mux *mux, int channel, int frame, int bitNum, SwitchMode invert) {
+MuxSwitch::MuxSwitch(Mux *mux, int channel, int outputNum, SwitchMode invert) {
     this->mux = mux;
     this->channel = channel;
-    this->frame = frame;
-    this->bitNum = bitNum;
-    this->invert = invert;
+    this->outputNum = outputNum;
+    this->invert = invert == SwitchMode::NORMAL ? false : true;
     this->mode = INPUT_PULLUP;
+    mux->setChannelMode(channel, MuxChannelMode::pullup);
 };
 
-MuxSwitch::MuxSwitch(Mux *mux, int channel, int frame, int bitNum) : MuxSwitch::MuxSwitch(mux, channel, frame, bitNum, SwitchMode::NORMAL) {
-}
 
 void MuxSwitch::setup() {
-    this->mux->setDataPinMode(this->mode);
-    this->update();
+    update();
 }
 
 bool MuxSwitch::probe() {
-    this->mux->enable();
-    this->mux->channel(this->channel);
-    delayMicroseconds(1);
-    return this->mux->readDigital();
+    return mux->getChannelState(channel);
 };

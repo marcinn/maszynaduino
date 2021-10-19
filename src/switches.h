@@ -3,23 +3,28 @@
 
 #include "Arduino.h"
 #include "mux.h"
+#include "comm.h"
 
 
-enum SwitchMode { NORMAL=0, INVERT };
+class Console;
+class DebugMonitor;
+
+enum class SwitchMode { NORMAL=0, INVERT };
 
 
 class Switch {
   public:
-    void updateOutputs(uint8_t outputs[]);
     virtual void setup();
     void update();
+    void respond(MaszynaState *state);
+    virtual void onChange();
     bool getState();
     bool isOn();
     bool isOff();
+    int getOutputNumber();
   protected:
-    int frame;
-    int bitNum;
     int mode;
+    int outputNum;
     bool state = false;
     bool invert = false;
 
@@ -29,8 +34,8 @@ class Switch {
 
 class PinSwitch : public Switch {
   public:
-    PinSwitch(int pin, int frame, int bitNum, int mode, SwitchMode invert);
-    PinSwitch(int pin, int frame, int bitNum);
+    PinSwitch(int pin, int outputNum, int mode, SwitchMode invert);
+    PinSwitch(int pin, int outputNum, SwitchMode mode = SwitchMode::NORMAL);
     void setup();
   protected:
     bool probe();
@@ -41,8 +46,7 @@ class PinSwitch : public Switch {
 
 class MuxSwitch : public Switch {
   public:
-    MuxSwitch(Mux *mux, int channel, int frame, int bitNum, SwitchMode invert);
-    MuxSwitch(Mux *mux, int channel, int frame, int bitNum);
+    MuxSwitch(Mux *mux, int channel, int outputNumber, SwitchMode invert = SwitchMode::NORMAL);
     void setup();
   protected:
     bool probe();
