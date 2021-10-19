@@ -26,6 +26,9 @@ void Console::setup() {
     for (int i = 0; i < this->controllersCount; i++) {
         this->controllers[i]->setup();
     }
+    for (int i = 0; i < this->displaysCount; i++) {
+        this->displays[i]->setup();
+    }
     initialized = true;
 }
 
@@ -44,6 +47,10 @@ void Console::update() {
     for (int i = 0; i < this->indicatorsCount; i++) {
         this->indicators[i]->update(Maszyna);
         this->indicators[i]->respond();
+    }
+    for (int i = 0; i < this->displaysCount; i++) {
+        this->displays[i]->update(Maszyna);
+        this->displays[i]->respond();
     }
     for (int i = 0; i < this->controllersCount; i++) {
         this->controllers[i]->update();
@@ -66,8 +73,17 @@ void Console::addIndicator(Indicator *indicator) {
     this->indicatorsCount++;
 }
 
+void Console::addDisplay(GenericDisplay *_reg) {
+    this->displays[this->displaysCount] = _reg;
+    this->displaysCount++;
+}
+
 int Console::getSwitchesCount() {
     return this->switchesCount;
+}
+
+int Console::getDisplaysCount() {
+    return this->displaysCount;
 }
 
 int Console::getIndicatorsCount() {
@@ -89,6 +105,14 @@ Indicator *Console::getIndicator(int num) {
 Controller *Console::getController(int num) {
     if(num<controllersCount) {
         return this->controllers[num];
+    } else {
+        return nullptr;
+    }
+}
+
+GenericDisplay *Console::getDisplay(int num) {
+    if(num<displaysCount) {
+        return this->displays[num];
     } else {
         return nullptr;
     }

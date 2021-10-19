@@ -51,6 +51,16 @@ struct __attribute__((packed))  OutputFrame {
 const int INPUTS_SIZE = sizeof(InputFrame);
 const int OUTPUTS_SIZE = sizeof(OutputFrame);
 
+
+struct s_datetime {
+    int year;
+    int month;
+    int day;
+    int hour;
+    int minute;
+    int second;
+};
+
 class MaszynaState {
     public:
         InputFrame* getInputs();
@@ -64,11 +74,13 @@ class MaszynaState {
         bool getOutputSwitch(uint8_t num);
 		unsigned long getMuxCalcTime();
 		void setMuxCalcTime(unsigned long t);
+        s_datetime *getSimDateTime();
 
     private:
 		unsigned long muxCalcTime  = 0;
         InputFrame input = {{0}, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, {0}};
         OutputFrame output = {{0xEF, 0xEF, 0xEF, 0xEF}, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, {0}};
+        s_datetime datetime = {0, 0, 0, 0, 0, 0};
 };
 
 

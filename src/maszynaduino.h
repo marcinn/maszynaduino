@@ -10,6 +10,7 @@
 #include "controller.h"
 #include "switches.h"
 #include "indicators.h"
+#include "clock.h"
 #include "outputs.h"
 #include "console.h"
 #include "comm.h"

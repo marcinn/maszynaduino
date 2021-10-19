@@ -5,6 +5,7 @@
 #include "comm.h"
 #include "mux.h"
 #include "outputs.h"
+#include "display.h"
 
 class DebugMonitor;
 
@@ -54,13 +55,13 @@ enum class Alert {
 };
 
 
-class Indicator {
+class Indicator : public GenericDisplay {
     public:
         Indicator(IOutput *output, int pin, Alert indicatorNumber);
-        void update(MaszynaState *state);
-        void setup();
+        void update(MaszynaState *state) override;
+        void setup() override;
+        void respond() override;
         void reset();
-        void respond();
         Alert getAlert();
         uint8_t getAlertNumber();
         bool getState();

@@ -199,3 +199,25 @@ void MaszynaState::setMuxCalcTime(unsigned long t) {
 unsigned long MaszynaState::getMuxCalcTime() {
     return muxCalcTime ;
 }
+
+s_datetime* MaszynaState::getSimDateTime() {
+    uint16_t dhm = input.day_hour_minute;
+    uint16_t ym = input.year_month;
+    uint16_t sec = input.second_milisecond;
+    int day = dhm / 1440;
+    int minutes = dhm % 1440;
+    int hour = minutes / 60;
+    int minute = minutes % 60;
+    int year = ym / 12;
+    int month = ym % 12;
+    int second = sec / 1000;
+
+    this->datetime.year = year+1;
+    this->datetime.month = month+1;
+    this->datetime.day = day+1;
+    this->datetime.hour = hour;
+    this->datetime.minute = minute;
+    this->datetime.second = second;
+
+    return &datetime;
+}
