@@ -35,3 +35,7 @@ void ArduinoOutput::setup(int pin) {
     pinMode(pin, OUTPUT);
     write(pin, LOW);
 }
+
+void ArduinoAnalogOutput::write(int pin, int value) {
+    analogWrite(pin, value);
+};

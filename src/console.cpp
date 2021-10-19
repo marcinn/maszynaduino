@@ -23,6 +23,9 @@ void Console::setup() {
     for (int i = 0; i < this->indicatorsCount; i++) {
         this->indicators[i]->setup();
     }
+    for (int i = 0; i < this->controllersCount; i++) {
+        this->controllers[i]->setup();
+    }
     initialized = true;
 }
 
@@ -42,11 +45,20 @@ void Console::update() {
         this->indicators[i]->update(Maszyna);
         this->indicators[i]->respond();
     }
+    for (int i = 0; i < this->controllersCount; i++) {
+        this->controllers[i]->update();
+        this->controllers[i]->respond(Maszyna);
+    }
 }
 
 void Console::addSwitch(Switch *_switch) {
     this->switches[this->switchesCount] = _switch;
     this->switchesCount++;
+}
+
+void Console::addController(Controller *_reg) {
+    this->controllers[this->controllersCount] = _reg;
+    this->controllersCount++;
 }
 
 void Console::addIndicator(Indicator *indicator) {
@@ -62,9 +74,21 @@ int Console::getIndicatorsCount() {
     return this->indicatorsCount;
 }
 
+int Console::getControllersCount() {
+    return this->controllersCount;
+}
+
 Indicator *Console::getIndicator(int num) {
     if(num<indicatorsCount) {
         return this->indicators[num];
+    } else {
+        return nullptr;
+    }
+}
+
+Controller *Console::getController(int num) {
+    if(num<controllersCount) {
+        return this->controllers[num];
     } else {
         return nullptr;
     }

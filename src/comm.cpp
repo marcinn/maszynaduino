@@ -1,5 +1,6 @@
 #include "Arduino.h"
 #include "comm.h"
+#include "controller.h"
 
 extern MaszynaState *Maszyna;
 
@@ -171,6 +172,25 @@ void MaszynaState::setOutputBit(uint8_t byteNum, uint8_t bitNum, bool state) {
 void MaszynaState::setInputs(InputFrame *frame) {
     memcpy(&this->input, (uint8_t *) frame, sizeof(InputFrame));
 }
+
+void MaszynaState::setControllerValue(ControllerType type, int value) {
+    OutputFrame *o = &output;
+    switch(type) {
+        case ControllerType::master_controller:
+            o->master_controller = (uint8_t) value;
+            break;
+        case ControllerType::secondary_controller:
+            o->second_controller = (uint8_t) value;
+            break;
+        case ControllerType::train_brake:
+            o->train_brake = (uint16_t) value;
+            break;
+        case ControllerType::independent_brake:
+            o->independent_brake = (uint16_t) value;
+            break;
+    }
+};
+
 
 void MaszynaState::setMuxCalcTime(unsigned long t) {
     muxCalcTime = t;

@@ -7,10 +7,11 @@
 
 #include "debugmonitor.h"
 #include "mux.h"
-#include "console.h"
+#include "controller.h"
 #include "switches.h"
 #include "indicators.h"
 #include "outputs.h"
+#include "console.h"
 #include "comm.h"
 #include "version.h"
 

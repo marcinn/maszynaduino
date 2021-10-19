@@ -22,8 +22,12 @@ class PCF8574Output : public IOutput {
 
 class ArduinoOutput : public IOutput {
     public:
-        void write(int pin, int value);
+        virtual void write(int pin, int value);
         void setup(int pin);
+};
+
+class ArduinoAnalogOutput : public ArduinoOutput {
+    void write(int pin, int value);
 };
 
 #endif

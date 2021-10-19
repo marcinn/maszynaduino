@@ -4,6 +4,7 @@
 #include "Arduino.h"
 
 enum class Alert;
+enum class ControllerType;
 
 //#define MASZYNADUINO_MASZYNA_UART_SYNC_BUG_WORKAROUND
 
@@ -59,6 +60,7 @@ class MaszynaState {
         void setOutputBit(uint8_t num, uint8_t bitNum, bool state);
         void setOutputSwitch(uint8_t num, bool state);
         void setIndicatorState(Alert indicatorNum, bool state);
+        void setControllerValue(ControllerType, int value);
         bool getOutputSwitch(uint8_t num);
 		unsigned long getMuxCalcTime();
 		void setMuxCalcTime(unsigned long t);
