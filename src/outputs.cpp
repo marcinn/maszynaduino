@@ -28,7 +28,7 @@ void PCF8574Output::setup(int pin) {
 }
 
 void ArduinoOutput::write(int pin, int value) {
-    digitalWrite(pin, value);
+    digitalWrite(pin, value == 0 ? LOW : HIGH);
 }
 
 void ArduinoOutput::setup(int pin) {
