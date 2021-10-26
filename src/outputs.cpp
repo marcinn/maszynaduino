@@ -27,13 +27,18 @@ void PCF8574Output::setup(int pin) {
     this->expander->write(pin, LOW);
 }
 
+ArduinoOutput::ArduinoOutput(ActiveStateMode activeStateMode) {
+    this->_high = activeStateMode == ActiveStateMode::ACTIVE_HIGH ? HIGH : LOW;
+    this->_low = activeStateMode == ActiveStateMode::ACTIVE_HIGH ? LOW : HIGH;
+}
+
 void ArduinoOutput::write(int pin, int value) {
-    digitalWrite(pin, value ? HIGH : LOW);
+    digitalWrite(pin, value ? _high : _low);
 }
 
 void ArduinoOutput::setup(int pin) {
     pinMode(pin, OUTPUT);
-    write(pin, LOW);
+    write(pin, _low);
 }
 
 void ArduinoAnalogOutput::write(int pin, int value) {

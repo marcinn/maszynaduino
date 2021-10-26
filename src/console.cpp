@@ -32,11 +32,14 @@ void Console::setup() {
 }
 
 void Console::update() {
+    bool _setup = false;
+
     if(!initialized) {
         this->setup();
         initialized = true;
+        _setup = true;
     }
-    if ((millis() - lastUpdate) < 50) {
+    if ((millis() - lastUpdate) < 50 && !_setup) {
         return;
     }
     lastUpdate = millis();
@@ -46,12 +49,12 @@ void Console::update() {
         this->switches[i]->respond(Maszyna);
     }
     for (int i = 0; i < this->indicatorsCount; i++) {
-        if(this->indicators[i]->update(Maszyna)) {
+        if(this->indicators[i]->update(Maszyna) || _setup) {
             this->indicators[i]->respond();
         }
     }
     for (int i = 0; i < this->displaysCount; i++) {
-        if(this->displays[i]->update(Maszyna)) {
+        if(this->displays[i]->update(Maszyna) || _setup) {
             this->displays[i]->respond();
         }
     }
@@ -82,6 +85,7 @@ void Console::addIndicator(Indicator *indicator) {
     this->indicatorsCount++;
     if(initialized) {
         indicator->setup();
+        indicator->respond();
     }
 }
 
@@ -90,6 +94,7 @@ void Console::addDisplay(GenericDisplay *_reg) {
     this->displaysCount++;
     if(initialized) {
         _reg->setup();
+        _reg->respond();
     }
 }
 
