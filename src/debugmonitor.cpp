@@ -29,10 +29,11 @@ void DebugMonitor::transmit() {
         this->serial->begin(baud);
         initialized = true;
     }
-    if(!this->serial || !this->serial->availableForWrite()) {
+    if(!this->serial || (millis()-lastSent<100) || !serial->availableForWrite()) {
         return;
     }
 
+    this->lastSent = millis();
     char cmd;
 
     if((cmd = this->serial->read()) > -1) {
@@ -85,5 +86,4 @@ void DebugMonitor::transmit() {
 
         this->serial->write((uint8_t *) &f, sizeof(f));
     }
-
 }

@@ -21,9 +21,9 @@ class TM1637ArduinoOutput : public TM1637Output {
 class TM1637Clock : public GenericDisplay {
     public:
         TM1637Clock(TM1637Output *output);
-        void update(MaszynaState *state);
-        void setup();
-        void respond();
+        bool update(MaszynaState *state) override;
+        void setup() override;
+        void respond() override;
     protected:
         TM1637Output *output;
         bool displayColon = false;

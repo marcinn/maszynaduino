@@ -7,8 +7,9 @@ TM1637Clock :: TM1637Clock(TM1637Output *output) {
     this->output = output;
 }
 
-void TM1637Clock :: update(MaszynaState *state) {
+bool TM1637Clock :: update(MaszynaState *state) {
     dt = state->getSimDateTime();
+    return true;
 }
 
 

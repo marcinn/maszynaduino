@@ -50,6 +50,7 @@ class DebugMonitor {
         SerialTransmitter *transmitter;
         InputFrame previousInput;
         OutputFrame previousOutput;
+        unsigned long lastSent = 0;
         unsigned long timeCounter = 0;
         bool initialized = false;
 };

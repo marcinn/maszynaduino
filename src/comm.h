@@ -26,7 +26,7 @@ struct __attribute__((packed))  InputFrame {         // bajt
     uint16_t year_month;        // 25-26
     uint16_t day_hour_minute;   // 27-28
     uint16_t second_milisecond; // 29-30
-    long odometer;          // 31-34
+    uint32_t odometer;          // 31-34
     uint16_t lv_voltage;        // 35-36
     uint8_t radio_channel;     // 37
     uint8_t unused[14];        // 38-51
@@ -67,6 +67,7 @@ class MaszynaState {
         OutputFrame* getOutputs();
         void setInputs(InputFrame *);
         bool getIndicatorState(Alert indicatorNumber);
+        bool getIndicatorState(uint8_t indicatorNumber);
         void setOutputBit(uint8_t num, uint8_t bitNum, bool state);
         void setOutputSwitch(uint8_t num, bool state);
         void setIndicatorState(Alert indicatorNum, bool state);
@@ -100,7 +101,7 @@ class Transmitter {
 
 class SerialTransmitter : public Transmitter {
     public:
-        SerialTransmitter(HardwareSerial *serial, unsigned long baud=57600);
+        SerialTransmitter(HardwareSerial *serial, unsigned long baud=57600, unsigned int minPause=100);
         void transmit();
         HardwareSerial *getSerial();
         unsigned long getSerialBaud();
@@ -110,6 +111,8 @@ class SerialTransmitter : public Transmitter {
         unsigned long baud;
         InputFrame tmpBuf = {0};
         bool initialized = false;
+        unsigned int minPause = 100;
+        unsigned int readPos = 0;
         unsigned long lastSend = 0;
         unsigned long lastRead = 0;
         unsigned long lastUpdate = 0;

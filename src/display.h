@@ -2,7 +2,7 @@
 
 class GenericDisplay {
     public:
-        virtual void update(MaszynaState *state);
+        virtual bool update(MaszynaState *state); // returns true if changed
         virtual void setup();
         virtual void respond();
 };

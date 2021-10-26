@@ -1,6 +1,7 @@
 #include "Arduino.h"
 #include "comm.h"
 #include "controller.h"
+#define MIN(a,b) (((a)<(b))?(a):(b))
 
 extern MaszynaState *Maszyna;
 
@@ -21,10 +22,11 @@ bool Transmitter::isTransmissionActive() {
     return transmissionActive;
 }
 
-SerialTransmitter::SerialTransmitter(HardwareSerial *serial, unsigned long baud) : Transmitter() {
+SerialTransmitter::SerialTransmitter(HardwareSerial *serial, unsigned long baud, unsigned int minPause) : Transmitter() {
     this->baud = baud;
     this->serial = serial;
     this->serial->setTimeout(250);
+    this->minPause = minPause;
 }
 
 void SerialTransmitter::transmit() {
@@ -32,7 +34,7 @@ void SerialTransmitter::transmit() {
         this->serial->begin(baud, SERIAL_8N1);
         initialized = true;
     }
-    if ((millis() - lastSend) > 100) {
+    if ((millis() - lastSend) > minPause) {
 
         OutputFrame *outputs =  state->getOutputs();
         InputFrame *inputs =  state->getInputs();
@@ -61,7 +63,8 @@ void SerialTransmitter::transmit() {
 
                 }
             } else {
-                serial->readBytes((uint8_t *) &tmpBuf, serial->available());
+                serial->readBytes((uint8_t *) &tmpBuf, MIN(serial->available(), sizeof(InputFrame)));
+                //serial->readBytes((uint8_t *) &tmpBuf, serial->available());
                 serial->write((uint8_t *) outputs, sizeof(OutputFrame));
                 lastSend = millis();
             }
@@ -128,15 +131,17 @@ OutputFrame* MaszynaState::getOutputs() {
 
 bool MaszynaState::getIndicatorState(Alert alert) {
     uint8_t const indicatorNum = static_cast<int>(alert);
-    uint8_t const byteNum = (indicatorNum / 8);
-    uint8_t const bitNum = indicatorNum % 8;
-    return ((uint8_t *) &input.indicator0)[byteNum] & (1 << bitNum);
+    return getIndicatorState(indicatorNum);
+}
+
+bool MaszynaState::getIndicatorState(uint8_t indicatorNum) {
+    return ((uint8_t *) &input.indicator0)[indicatorNum >> 3] & (1 << indicatorNum % 8);
 }
 
 void MaszynaState::setIndicatorState(Alert alert, bool state) {
-    uint8_t const indicatorNum = static_cast<int>(alert);
-    uint8_t const byteNum = (indicatorNum / 8);
-    uint8_t const bitNum = indicatorNum % 8;
+    uint8_t const indNum = static_cast<uint8_t>(alert);
+    uint8_t const byteNum = indNum >> 3;
+    uint8_t const bitNum = indNum % 8;
     if (state) {
         ((uint8_t *) &input.indicator0)[byteNum] |= (1 << bitNum);
     } else {

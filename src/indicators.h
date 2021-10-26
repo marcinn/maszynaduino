@@ -51,14 +51,16 @@ enum class Alert {
     radio_stop,
     springbrake_active,
     alerter_sound,
-    UNUSED = -1
+    UNUSED = -1,
+    UNKNOWN = -2
 };
 
 
 class Indicator : public GenericDisplay {
     public:
         Indicator(IOutput *output, int pin, Alert indicatorNumber);
-        void update(MaszynaState *state) override;
+        Indicator(IOutput *output, int pin, uint8_t byteNumber, uint8_t bitNumber);
+        bool update(MaszynaState *state) override;
         void setup() override;
         void respond() override;
         void reset();
@@ -68,7 +70,8 @@ class Indicator : public GenericDisplay {
 
     protected:
         bool readState(MaszynaState *state);
-        Alert alert;
+        Alert alert = Alert::UNKNOWN;
+        uint8_t alertNumber;
         bool state = false;
         bool invert = false;
         int pin;
