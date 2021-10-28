@@ -22,11 +22,14 @@ bool Transmitter::isTransmissionActive() {
     return transmissionActive;
 }
 
-SerialTransmitter::SerialTransmitter(HardwareSerial *serial, unsigned long baud, unsigned int minPause) : Transmitter() {
+bool Transmitter::isSynced() {
+    return synced;
+}
+
+SerialTransmitter::SerialTransmitter(HardwareSerial *serial, unsigned long baud, unsigned int updateTime) : Transmitter() {
     this->baud = baud;
     this->serial = serial;
-    this->serial->setTimeout(250);
-    this->minPause = minPause;
+    this->updateTime = updateTime;
 }
 
 void SerialTransmitter::transmit() {
@@ -34,80 +37,47 @@ void SerialTransmitter::transmit() {
         this->serial->begin(baud, SERIAL_8N1);
         initialized = true;
     }
-    if ((millis() - lastSend) > minPause) {
 
-        OutputFrame *outputs =  state->getOutputs();
-        InputFrame *inputs =  state->getInputs();
+    if(millis() - lastUpdated < updateTime) {
+        return;
+    }
 
-        int bytesToRead = (INPUTS_SIZE - (skipPreamble ? 4 : 0));
-        int readOffset = skipPreamble ? 4 : 0;
+    lastUpdated = millis();
 
-        if (this->synced) {
-            if (serial->available() >= bytesToRead) {
+    int bw = serial->write((uint8_t *) state->getOutputs(), OUTPUTS_SIZE);
+    if(bw < OUTPUTS_SIZE) {
+        return;
+    }
 
-                int br = serial->readBytes((uint8_t *) &tmpBuf + readOffset, bytesToRead);
-                if (br != bytesToRead) {
-                    this->synced = false;
-                    syncstep = 0;
-                } else {
-                    serial->write((uint8_t *) outputs, OUTPUTS_SIZE);
-                    skipPreamble = false;
-                    this->synced = (tmpBuf.preamble[0] == 0xEF && tmpBuf.preamble[1] == 0xEF && tmpBuf.preamble[2] == 0xEF && tmpBuf.preamble[3] == 0xEF);
-                    if (this->synced) {
-                        memcpy((uint8_t*) inputs, (uint8_t*) &tmpBuf, INPUTS_SIZE);
-                        lastSend = millis();
-                        lastRead = lastSend;
-                    } else {
-                        syncstep = 0;
-                    }
+    int br = serial->readBytes((uint8_t *) &inBuf, INPUTS_SIZE);
 
-                }
-            } else {
-                serial->readBytes((uint8_t *) &tmpBuf, MIN(serial->available(), sizeof(InputFrame)));
-                //serial->readBytes((uint8_t *) &tmpBuf, serial->available());
-                serial->write((uint8_t *) outputs, sizeof(OutputFrame));
-                lastSend = millis();
-            }
-        } else if (!serial->available()) {
-            if ((millis() - lastSend) > 1000) {
-                int bw = serial->write((uint8_t *) outputs, sizeof(OutputFrame));
-                lastSend = millis();
-            }
+
+    if(br == INPUTS_SIZE) {
+        uint8_t *p = (uint8_t *) &inBuf.preamble;
+        synced = ((p[0] == 0xEF) && (p[1] == 0xEF) && (p[2] == 0xEF) && (p[3] == 0xEF));
+
+        if(synced) {
+            lastRead = millis();
+            state->setInputs(&inBuf);
         } else {
-            int c;
-
-            while (serial->available() && (c = serial->read())) {
-                if (c == -1) {
-                    break;
-                }
-                if (c == 0xEF) {
+            int syncstep = 0;
+            while(syncstep<4) {
+                unsigned char c = serial->read();
+                if(c == 0xEF) {
                     syncstep++;
-                    if (syncstep == 4) {
-                        syncstep = 0;
-                        skipPreamble = true;
-
-                        this->synced = true;
-                        if (serial->available() >= INPUTS_SIZE - 4) {
-
-                            int br = serial->readBytes((uint8_t *) &tmpBuf + 4, INPUTS_SIZE - 4);
-
-                            if (br == INPUTS_SIZE - 4) {
-                                skipPreamble = false;
-
-                            } else {
-                                this->synced = false;
-                            }
-                        }
-                        break;
-                    }
-                } else {
-                    syncstep = 0;
+                }
+                if(syncstep == 4) {
+                    synced = true;
+                    serial->readBytes((uint8_t *) &inBuf+4, INPUTS_SIZE-4);
+                    break;
                 }
             }
         }
     }
+
     if(transmissionActive && (millis() - lastRead) > 500) {
         transmissionActive = false;
+        synced = false;
     }
     if(!transmissionActive && (millis() - lastRead) < 500) {
         transmissionActive = true;

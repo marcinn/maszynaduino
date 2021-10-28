@@ -73,12 +73,12 @@ class MaszynaState {
         void setIndicatorState(Alert indicatorNum, bool state);
         void setControllerValue(ControllerType, int value);
         bool getOutputSwitch(uint8_t num);
-		unsigned long getMuxCalcTime();
-		void setMuxCalcTime(unsigned long t);
+        unsigned long getMuxCalcTime();
+        void setMuxCalcTime(unsigned long t);
         s_datetime *getSimDateTime();
 
     private:
-		unsigned long muxCalcTime  = 0;
+        unsigned long muxCalcTime  = 0;
         InputFrame input = {{0}, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, {0}};
         OutputFrame output = {{0xEF, 0xEF, 0xEF, 0xEF}, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, {0}};
         s_datetime datetime = {0, 0, 0, 0, 0, 0};
@@ -91,17 +91,18 @@ class Transmitter {
         virtual void transmit();
         bool isTransmissionActive();
         bool isTransmissionStarted();
-		bool synced = false;
         MaszynaState *getState();
+        bool isSynced();
     protected:
         MaszynaState *state;
+        bool synced = false;
         bool transmissionActive = false;
         bool transmissionStarted = false;
 };
 
 class SerialTransmitter : public Transmitter {
     public:
-        SerialTransmitter(HardwareSerial *serial, unsigned long baud=57600, unsigned int minPause=100);
+        SerialTransmitter(HardwareSerial *serial, unsigned long baud=57600, unsigned int updateTime = 0);
         void transmit();
         HardwareSerial *getSerial();
         unsigned long getSerialBaud();
@@ -109,16 +110,12 @@ class SerialTransmitter : public Transmitter {
     private:
         HardwareSerial *serial;
         unsigned long baud;
-        InputFrame tmpBuf = {0};
+        InputFrame inBuf = {0};
         bool initialized = false;
-        unsigned int minPause = 100;
-        unsigned int readPos = 0;
         unsigned long lastSend = 0;
         unsigned long lastRead = 0;
-        unsigned long lastUpdate = 0;
-        unsigned long lastTransmission = 0;
-        byte syncstep = 0;
-        bool skipPreamble = false;
+        unsigned long lastUpdated = 0;
+        unsigned int updateTime = 0;
 };
 
 extern MaszynaState *Maszyna;

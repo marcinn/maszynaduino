@@ -51,7 +51,7 @@ void DebugMonitor::transmit() {
         OutputFrame *outputs = state->getOutputs();
 
         f.uptime = millis();
-        f.trn_flags = 1 & transmitter->synced;
+        f.trn_flags = 1 & transmitter->isSynced();
         f.trn_serial_avail = transmitter->getSerial()->available();
 
         memcpy(&f.tr_rx, inputs, sizeof(InputFrame));
