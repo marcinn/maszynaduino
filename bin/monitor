@@ -98,7 +98,7 @@ class MaszynaduinoState:
     trn_serial_avail: int
     mux_calc_time: int
     muxers: List[Mux]
-    consoles: List[Console]
+    console: Console
     max_consoles: int
     max_switches: int
     max_indicators: int
@@ -147,6 +147,10 @@ COMMAND_NAMES = {
     r'^look.+': 'LOOK',
     r'^hornlow.+': 'HORN-L',
     r'^hornhigh.+': 'HORN-H',
+    r'^converter.+': 'CONV',
+    r'^compressor.+': 'COMP',
+    r'^pantograph[a-z]+front': 'PAN-F',
+    r'^pantograph[a-z]+rear': 'PAN-R',
 }
 
 OUTPUT_NAMES = {}
@@ -165,7 +169,7 @@ def parse_outputs_config(path):
                 num, mode, on, off = match.groups()
                 num = str(num)
                 inum = int(num)
-                name = f'Out #{inum:02d}'
+                name = f'#{inum:02d}'
                 for name_re, shortcut in COMMAND_NAMES.items():
                     if re.match(name_re, on.lower().strip()):
                         name = shortcut
@@ -192,40 +196,41 @@ def cmd_mon(s: serial.Serial):
         muxers.append(Mux(state=mux_states[x], channels_dir=mux_dirs[x]))
 
     console_count = bytes_as_int(s.read())
+    console_current = bytes_as_int(s.read())
     max_consoles = bytes_as_int(s.read())
     max_switches = bytes_as_int(s.read())
     max_indicators = bytes_as_int(s.read())
 
-    switches_count = list(s.read(max_consoles))
-    switches_config = list(s.read(max_consoles*max_switches))
-    switches_state = list(s.read(max_consoles*max_switches))
-    ind_count = list(s.read(max_consoles))
-    ind_config = list(s.read(max_consoles*max_indicators))
-    ind_state = list(s.read(max_consoles*max_indicators))
+    switches_count = bytes_as_int(s.read())
+    switches_config = list(s.read(max_switches))
+    switches_state = list(s.read(max_switches))
+    ind_count = bytes_as_int(s.read())
+    ind_config = list(s.read(max_indicators))
+    ind_state = list(s.read(max_indicators))
 
-    consoles = []
-    for i in range(console_count):
-        switches = []
-        indicators = []
-        for j in range(switches_count[i]):
-            output_number = switches_config[i*max_switches+j]
-            state = switches_state[i*max_switches+j]
-            output_name = OUTPUT_NAMES.get(
-                str(output_number),
-                f'Output #{output_number:02d}'
-            )
-            switches.append(
-                Switch(name=output_name, state=state)
-            )
-        for j in range(ind_count[i]):
-            ind_number = ind_config[i*max_indicators+j]
-            state = ind_state[i*max_indicators+j]
-            try:
-                ind_name = IndicatorNames[ind_number]
-            except IndexError:
-                ind_name = f'Ind({ind_number})'
-            indicators.append(Indicator(name=ind_name, state=state))
-        consoles.append(Console(switches=switches, indicators=indicators))
+    switches = []
+    indicators = []
+
+    for j in range(switches_count):
+        output_number = switches_config[j]
+        state = switches_state[j]
+        output_name = OUTPUT_NAMES.get(
+            str(output_number),
+            f'{output_number:02d}'
+        )
+        switches.append(
+            Switch(name=output_name, state=state)
+        )
+
+    for j in range(ind_count):
+        ind_number = ind_config[j]
+        state = ind_state[j]
+        try:
+            ind_name = IndicatorNames[ind_number]
+        except IndexError:
+            ind_name = f'Ind({ind_number})'
+        indicators.append(Indicator(name=ind_name, state=state))
+    console = Console(switches=switches, indicators=indicators)
 
     s.read_until(b'EON!')
 
@@ -236,7 +241,7 @@ def cmd_mon(s: serial.Serial):
         inputs=inputs,
         outputs=outputs,
         muxers=muxers,
-        consoles=consoles,
+        console=console,
         max_muxers=max_mux,
         max_consoles=max_consoles,
         max_switches=max_switches,
@@ -251,9 +256,8 @@ def main(scr, args):
     serial_port = args.serial
     serial_baud = args.baud
 
-    parse_outputs_config(
-        '/home/marcin/.wine/drive_c/Program Files (x86)/MaSzyna2020/eu07_input-uart.ini'
-    )
+    if args.gamedir:
+        parse_outputs_config(os.path.join(args.gamedir, "eu07_input-uart.ini"))
 
     try:
         port = serial.Serial(serial_port, serial_baud, timeout=0.5)
@@ -355,7 +359,7 @@ def main(scr, args):
                 if not port.is_open:
                     port.open()
                 state = cmd_mon(port)
-            except Exception as ex:
+            except (serial.SerialException, struct.error) as ex:
                 error = str(ex)
                 try:
                     port.close()
@@ -404,7 +408,7 @@ def main(scr, args):
         win.addstr(0, w-len(txt)-2, txt)
         win.addstr(
             2, 3,
-            f'Consoles: {len(state.consoles)}/{state.max_consoles}   '
+            f'Consoles: {CURRENT_CONSOLE+1}/{state.max_consoles}   '
             f'Muxers: {len(state.muxers)}/{state.max_muxers}   '
             f'Max switches: {state.max_switches}   '
             f'Max indicators: {state.max_indicators}'
@@ -451,7 +455,7 @@ def main(scr, args):
         h, w = cwin.getmaxyx()
         w_max = w - 3
 
-        console = state.consoles[CURRENT_CONSOLE]
+        console = state.console
         cwin.addstr(0, 13, str(CURRENT_CONSOLE), curses.A_DIM | curses.A_BOLD)
         cwin.addstr(0, 20, f' Ind: {len(console.indicators)} ')
         cwin.addstr(0, 30, f' Sw: {len(console.switches)} ')
@@ -560,7 +564,8 @@ def main(scr, args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Maszynaduino")
-    parser.add_argument("serial", type=str)
+    parser.add_argument("serial", type=str, help="port name / path")
+    parser.add_argument("--gamedir", type=str, help="EU07 gamedir path")
     parser.add_argument("--baud", default=57600, action="store")
     args = parser.parse_args()
 

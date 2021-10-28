@@ -62,7 +62,10 @@ void SerialTransmitter::transmit() {
         } else {
             int syncstep = 0;
             while(syncstep<4) {
-                unsigned char c = serial->read();
+                int c = serial->read();
+                if(c == -1) {
+                    break;
+                }
                 if(c == 0xEF) {
                     syncstep++;
                 }

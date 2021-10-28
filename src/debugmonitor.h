@@ -23,15 +23,16 @@ struct __attribute__((packed))  DebugFrame {
     uint32_t mux_dir[MAX_MUXERS];
     char consoleterminator[4] = {'C', 'O', 'N', '!'};
     uint8_t console_count;
+    uint8_t console_current;
     uint8_t max_consoles = MAX_CONSOLES;
     uint8_t max_switches = CONSOLE_MAX_SWITCHES;
     uint8_t max_indicators = CONSOLE_MAX_INDICATORS;
-    uint8_t console_switches_count[MAX_CONSOLES];
-    uint8_t console_switches[MAX_CONSOLES][CONSOLE_MAX_SWITCHES];
-    uint8_t console_switches_state[MAX_CONSOLES][CONSOLE_MAX_SWITCHES];
-    uint8_t console_indicators_count[MAX_CONSOLES];
-    uint8_t console_indicators[MAX_CONSOLES][CONSOLE_MAX_INDICATORS];
-    uint8_t console_indicators_state[MAX_CONSOLES][CONSOLE_MAX_INDICATORS];
+    uint8_t console_switches_count;
+    uint8_t console_switches[CONSOLE_MAX_SWITCHES];
+    uint8_t console_switches_state[CONSOLE_MAX_SWITCHES];
+    uint8_t console_indicators_count;
+    uint8_t console_indicators[CONSOLE_MAX_INDICATORS];
+    uint8_t console_indicators_state[CONSOLE_MAX_INDICATORS];
     char terminator[4] = {'E', 'O', 'N', '!'};
 };
 

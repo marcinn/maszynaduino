@@ -19,6 +19,9 @@ DebugMonitor::DebugMonitor(HardwareSerial *debugSerial, SerialTransmitter *trans
 }
 
 void DebugMonitor::setup() {
+    transmitter->getSerial()->setTimeout(250);
+    serial->begin(baud);
+    serial->setTimeout(250);
 }
 
 void DebugMonitor::update() {
@@ -26,7 +29,7 @@ void DebugMonitor::update() {
 
 void DebugMonitor::transmit() {
     if(!initialized) {
-        this->serial->begin(baud);
+        setup();
         initialized = true;
     }
     if(!this->serial || (millis()-lastSent<100) || !serial->availableForWrite()) {
@@ -64,23 +67,20 @@ void DebugMonitor::transmit() {
             f.mux_dir[i] = mux ? mux->getDirections() : 0;
         }
         f.console_count = 1;
-        for(int i=0;i<MAX_CONSOLES;i++) {
-            Console *c;
-            if(i==0) {
-                c = console;
-            } else {
-                c = nullptr;
+        f.console_current = 0;
+
+        {
+            Console *c = console;
+            f.console_switches_count = console ? console->getSwitchesCount() : -1;
+            f.console_indicators_count = console ? console->getIndicatorsCount() : -1;
+            for(int j=0;j<f.console_switches_count;j++) {
+                f.console_switches[j] = console ? console->getSwitch(j)->getOutputNumber() : -1;
+                f.console_switches_state[j] = console ? (int) console->getSwitch(j)->getState() : -1;
             }
-            f.console_switches_count[i] = console ? console->getSwitchesCount() : -1;
-            f.console_indicators_count[i] = console ? console->getIndicatorsCount() : -1;
-            for(int j=0;j<CONSOLE_MAX_SWITCHES;j++) {
-                f.console_switches[i][j] = console ? console->getSwitch(j)->getOutputNumber() : -1;
-                f.console_switches_state[i][j] = console ? (int) console->getSwitch(j)->getState() : -1;
-            }
-            for(int j=0;j<CONSOLE_MAX_INDICATORS;j++) {
+            for(int j=0;j<f.console_indicators_count;j++) {
                 Indicator *ind = console ? console->getIndicator(j) : nullptr;
-                f.console_indicators[i][j] = ind ? ind->getAlertNumber() : -1;
-                f.console_indicators_state[i][j] = ind ? (int) ind->getState() : 0;
+                f.console_indicators[j] = ind ? ind->getAlertNumber() : -1;
+                f.console_indicators_state[j] = ind ? (int) ind->getState() : 0;
             }
         }
 
