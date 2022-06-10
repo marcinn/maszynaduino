@@ -30,8 +30,8 @@ enum class Alert {
     train_heating,            // indicator2
     motor_resistors,
     wheel_slip,
-    _ind19,
-    _ind20,
+    dooropen_left,
+    dooropen_right,
     _ind21,
     alerter,
     shp,

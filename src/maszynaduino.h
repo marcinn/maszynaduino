@@ -11,6 +11,7 @@
 #include "switches.h"
 #include "indicators.h"
 #include "clock.h"
+#include "inputs.h"
 #include "outputs.h"
 #include "console.h"
 #include "comm.h"

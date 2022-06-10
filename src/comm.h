@@ -29,7 +29,7 @@ struct __attribute__((packed))  InputFrame {         // bajt
     uint32_t odometer;          // 31-34
     uint16_t lv_voltage;        // 35-36
     uint8_t radio_channel;     // 37
-    uint8_t unused[14];        // 38-51
+    uint8_t unused[14] ;        // 38-51
 };
 
 struct __attribute__((packed))  OutputFrame {
@@ -71,6 +71,7 @@ class MaszynaState {
         void setOutputBit(uint8_t num, uint8_t bitNum, bool state);
         void setOutputSwitch(uint8_t num, bool state);
         void setIndicatorState(Alert indicatorNum, bool state);
+        void setIndicatorState(int indicatorNum, bool state);
         void setControllerValue(ControllerType, int value);
         bool getOutputSwitch(uint8_t num);
         unsigned long getMuxCalcTime();

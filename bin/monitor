@@ -371,7 +371,7 @@ def main(scr, args):
                     init_screen()
         else:
             try:
-                port = serial.Serial(serial_port, serial_baud, timeout=0.1)
+                port = serial.Serial(serial_port, serial_baud, timeout=1)
             except serial.SerialException as ex:
                 error = str(ex)
             else:

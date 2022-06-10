@@ -25,7 +25,8 @@ enum class ControllerType {
     master_controller = 0,
     secondary_controller,
     train_brake,
-    independent_brake
+    independent_brake,
+    NONE = -1
 };
 
 

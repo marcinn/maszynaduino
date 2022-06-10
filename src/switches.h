@@ -4,6 +4,7 @@
 #include "Arduino.h"
 #include "mux.h"
 #include "comm.h"
+#include "inputs.h"
 
 
 class Console;
@@ -14,6 +15,7 @@ enum class SwitchMode { NORMAL=0, INVERT };
 
 class Switch {
   public:
+    Switch(IInput *input, int pin, int outputNumber, InputMode mode=InputMode::PULLUP, SwitchMode invert=SwitchMode::NORMAL);
     virtual void setup();
     void update();
     void respond(MaszynaState *state);
@@ -23,36 +25,23 @@ class Switch {
     bool isOff();
     int getOutputNumber();
   protected:
-    int mode;
+    int pin;
+    InputMode mode;
     int outputNum;
     bool state = false;
     bool invert = false;
+    IInput *input;
 
-    virtual bool probe();
+    bool probe();
 };
 
 
+/* DEPRECADED */
 class PinSwitch : public Switch {
   public:
     PinSwitch(int pin, int outputNum, int mode, SwitchMode invert);
     PinSwitch(int pin, int outputNum, SwitchMode mode = SwitchMode::NORMAL);
-    void setup();
-  protected:
-    bool probe();
-  private:
-    int pin;
 };
 
-
-class MuxSwitch : public Switch {
-  public:
-    MuxSwitch(Mux *mux, int channel, int outputNumber, SwitchMode invert = SwitchMode::NORMAL);
-    void setup();
-  protected:
-    bool probe();
-  private:
-    Mux *mux;
-    int channel;
-};
 
 #endif

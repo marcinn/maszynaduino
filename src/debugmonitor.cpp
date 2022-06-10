@@ -19,9 +19,9 @@ DebugMonitor::DebugMonitor(HardwareSerial *debugSerial, SerialTransmitter *trans
 }
 
 void DebugMonitor::setup() {
-    transmitter->getSerial()->setTimeout(250);
+    //transmitter->getSerial()->setTimeout(250);
     serial->begin(baud);
-    serial->setTimeout(250);
+    //serial->setTimeout(250);
 }
 
 void DebugMonitor::update() {

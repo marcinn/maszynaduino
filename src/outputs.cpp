@@ -1,7 +1,6 @@
 #include "Arduino.h"
 #include "outputs.h"
 #include "PCF8574.h"
-#include "Wire.h"
 
 PCF8574Output::PCF8574Output(int address) {
     this->expander = new PCF8574(address);
@@ -18,7 +17,6 @@ void PCF8574Output::write(int pin, int value) {
 
 void PCF8574Output::setup(int pin) {
     if(!initialized) {
-        Wire.setClock(400000);
         this->expander->begin();
         this->expander->write8(0);
         initialized = true;

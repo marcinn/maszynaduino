@@ -112,9 +112,13 @@ bool MaszynaState::getIndicatorState(uint8_t indicatorNum) {
 }
 
 void MaszynaState::setIndicatorState(Alert alert, bool state) {
-    uint8_t const indNum = static_cast<uint8_t>(alert);
-    uint8_t const byteNum = indNum >> 3;
-    uint8_t const bitNum = indNum % 8;
+    int const indNum = static_cast<int>(alert);
+    setIndicatorState(indNum, state);
+}
+
+void MaszynaState::setIndicatorState(int indNum, bool state) {
+    int const byteNum = indNum >> 3;
+    int const bitNum = indNum % 8;
     if (state) {
         ((uint8_t *) &input.indicator0)[byteNum] |= (1 << bitNum);
     } else {

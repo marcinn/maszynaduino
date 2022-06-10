@@ -2,11 +2,30 @@
 #include "switches.h"
 #include "console.h"
 
+extern ArduinoDigitalInput *arduinoDigitalInputs;
+
+Switch::Switch(IInput *input, int pin, int outputNum, InputMode mode, SwitchMode invert) {
+    this->pin = pin;
+    this->outputNum = outputNum;
+    this->invert = invert == SwitchMode::NORMAL ? false : true;
+    this->mode = mode;
+    this->input = input;
+}
+
+void Switch::setup() {
+    input->setup(pin, mode);
+    update();
+}
+
+bool Switch::probe() {
+    return input->read(pin);
+};
+
 void Switch::update() {
     bool value = probe();
     bool changed = false;
     value = (invert ? !value : value);
-    value = (mode == INPUT_PULLUP ? !value : value);
+    value = (mode == InputMode::PULLUP ? !value : value);
     changed = !(state == value);
     this->state = value;
     if(changed) {
@@ -38,44 +57,9 @@ bool Switch::isOff() {
 
 /* Pin Switch */
 
-PinSwitch::PinSwitch(int pin, int outputNum, int mode, SwitchMode invert) {
-    this->pin = pin;
-    this->outputNum = outputNum;
-    this->mode = mode;
-    this->invert = invert == SwitchMode::NORMAL ? false : true;
+PinSwitch::PinSwitch(int pin, int outputNum, int mode, SwitchMode invert) : Switch(arduinoDigitalInputs, pin, outputNum, mode == INPUT_PULLUP ? InputMode::PULLUP : InputMode::FLOATING, invert) {
 };
 
 PinSwitch::PinSwitch(int pin, int outputNum, SwitchMode mode)
     : PinSwitch::PinSwitch(pin, outputNum, INPUT_PULLUP, mode) {
-};
-
-void PinSwitch::setup() {
-    pinMode(pin, mode);
-    digitalWrite(pin, mode == INPUT_PULLUP ? HIGH : LOW);
-    update();
-}
-
-bool PinSwitch::probe() {
-    return digitalRead(pin);
-};
-
-
-/* MuxSwitch */
-
-MuxSwitch::MuxSwitch(Mux *mux, int channel, int outputNum, SwitchMode invert) {
-    this->mux = mux;
-    this->channel = channel;
-    this->outputNum = outputNum;
-    this->invert = invert == SwitchMode::NORMAL ? false : true;
-    this->mode = INPUT_PULLUP;
-    mux->setChannelMode(channel, MuxChannelMode::pullup);
-};
-
-
-void MuxSwitch::setup() {
-    update();
-}
-
-bool MuxSwitch::probe() {
-    return mux->getChannelState(channel);
 };
